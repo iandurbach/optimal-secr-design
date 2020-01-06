@@ -3,7 +3,7 @@ Approximately optimal survey design for spatial capture-recapture
 
 Code for choosing detector locations for SCR surveys that maximize the precision of density estimators. Detectors are placed to maximize whichever is the smaller of E(n), the number of animals detected (first captures), and E(r), the number of recaptures (total detections less first captures), based on the approximation in Efford and Boulanger (2019): CV(Dhat) ~ 1/sqrt[min{E(n),E(r)}].
 
-Two functions *Qfn* (in *\oSCR\Qfn_mcvd.R*) and *SCRdesign* (in *\oSCR\SCRdesign_mcvd.R*) overwrite functions of the same name in the R package oSCR (S), modifying the objective function to maximize precision and providing some additional functionality for non-uniform activity centre densities and non-uniform space use. These are the only files that are strictly required to generate approximately optimal designs. To use these, download the files into your project directory and overwrite the equivalent oSCR functions with 
+Two functions *Qfn* (in *\oSCR\Qfn_mcvd.R*) and *SCRdesign* (in *\oSCR\SCRdesign_mcvd.R*) overwrite functions of the same name in the R package oSCR, modifying the objective function to maximize precision and providing some additional functionality for non-uniform activity centre densities and non-uniform space use. These are the only files that are strictly required to generate approximately optimal designs. To use these, download the files into your project directory and overwrite the equivalent oSCR functions with 
 
 ```
 library(oSCR)
