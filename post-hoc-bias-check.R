@@ -34,7 +34,8 @@ sigma <- 6000
 
 results <- data.frame(i = as.integer(), j = as.integer(), 
                       E.N = as.numeric(), R.N = as.numeric(), E.Nlcl = as.numeric(), R.Nlcl = as.numeric(), 
-                      E.Nucl = as.numeric(), R.Nucl = as.numeric(), true.N = as.numeric())
+                      E.Nucl = as.numeric(), R.Nucl = as.numeric(), true.N = as.numeric(),
+                      n = as.numeric(), detections = as.numeric(), dets_visited = as.numeric())
 
 for(i in 1:length(traps)){
   
@@ -66,7 +67,7 @@ for(i in 1:length(traps)){
     startvals <- list(D = mean(Dcov_for_sim_ha), lambda0 = lambda0, sigma = sigma)
     
     mod <- try(secr.fit(capthist = ch, mask = mask, model = list(D ~ stdGC), 
-                        detectfn = "HHN", start = startvals))
+                        detectfn = "HHN", start = startvals, trace = FALSE))
     
     rmod <- try(region.N(mod))
     if((class(mod) != "try-error") & (class(rmod) != "try-error")){
@@ -88,7 +89,7 @@ for(i in 1:length(traps)){
 ##### for designs assuming non-uniform habitat use (uniform density)
 
 # load example designs 
-load("output/Tost_examples_noneuc.Rdata")  
+load("output/Tost_examples_noneuc_redo.Rdata")  
 
 # when generating noneuc designs I standardised the LC distances by dividing by 
 # a constant "divby" that made the distribution of the LC distances similar to the 
@@ -96,26 +97,21 @@ load("output/Tost_examples_noneuc.Rdata")
 # used in both. Now I want to use package secr, where you can only adjust sigma, so now
 # I need to recalculate those divby factors (because I didn't store them) 
 
-# user parameters
-cellsize <- 2000
-sigma <- 6000
-beta0 <- -0.8  # beta0 = log(lambda0) = log(K * 'p0')
-dens_per_100km2 <- 1 # mean animal density per 100km2, SLs are ~1
-
-# load secr mask
-load("data/Tost.RData")
-mask <- TostMask 
-
-# reduce resolution of mesh so have fewer possible camera locations
-red_factor <- cellsize[1] / attr(mask, "spacing")
-if ((trunc(red_factor) - red_factor) != 0) stop("Check spacing, causing non-integer reduction factor for mesh")
-mask <- secr::raster(mask, "stdGC") %>% raster::aggregate(fact = red_factor, fun = mean) 
-mask_df <- data.frame(coordinates(mask), stdGC = matrix(mask)) %>% filter(!is.na(stdGC))
 mask <- read.mask(data = mask_df)
 
+# average D
+dens_per_100km2 <- 1 # mean animal density per 100km2, SLs are ~1
+D_per_mask_cell <- dens_per_100km2 / 100 * (attr(mask, "area") / 100)
+D_per_ha <- dens_per_100km2 / 10000
+
+# detection function parameters
+beta0 <- -0.8
+lambda0 <- exp(beta0)
+sigma <- 6000
+
 # mask and traps
-statespace <- mask_df %>% st_as_sf(coords = c("x", "y"))  %>% st_coordinates() %>% as.matrix()
-all.traps <- statespace
+statespace <- mask_df[,1:2] %>% as.matrix()
+all.traps <- mask_df[,1:2] %>% as.matrix()
 
 traps <- opt_traps_all %>% filter(trap_id == 1) %>%
   mutate(ID = paste0(nT, "_", alpha2)) %>% dplyr::select(ID,x,y)
@@ -123,7 +119,7 @@ ID <- traps$ID
 traps <- split(traps[,-1], traps$ID)
 
 opt_noneuc_EnEr <- c()
-for(i in 1:100){
+for(i in 1:9){
   
   # get the value of the covariate from the name of the list element
   alpha2 <- as.numeric(str_split(names(traps)[i], pattern = "_", simplify = TRUE)[2])
@@ -147,14 +143,13 @@ for(i in 1:100){
   divby <- as.numeric(quantile(lcd0, probs = qe)) / as.numeric(quantile(pp0, probs = qe))
   addback <- min(pp_base) - (min(lcd_base) / divby) # scaled lcd <- (lcd - a) / divby + b where a = min(lcd) and b = min(pp)
   
-  Qres <- Qfn(X = as.matrix(traps[[i]]), S = statespace, N = 100, sigma = sigma, beta0 = beta0, D_per_mask_cell = D_per_mask_cell, 
-              transitions = trans, divby = divby, addback = addback, occasions = 1, detector = "count") 
-  
-  # 
+  Qres <- Qfn(X = as.matrix(traps[[i]]), S = statespace, N = 100, sigma = sigma, beta0 = beta0, D_per_mask_cell = D_per_mask_cell,
+              transitions = trans, divby = divby, addback = addback, occasions = 1, detector = "count")
+
   # # doesn't matter if you divide distance by divby or multiply sigma by divby, get same answer
-  # Qfn(X = as.matrix(traps[[i]]), S = statespace, N = 100, sigma = sigma * divby, beta0 = beta0, D_per_mask_cell = D_per_mask_cell, 
-  #      transitions = trans, divby = 1, addback = addback, occasions = 1, detector = "count) 
-  # 
+  # Qres <- Qfn(X = as.matrix(traps[[i]]), S = statespace, N = 100, sigma = sigma * divby, beta0 = beta0, D_per_mask_cell = D_per_mask_cell,
+  #      transitions = trans, divby = 1, addback = addback, occasions = 1, detector = "count")
+
   opt_noneuc_EnEr <- rbind(opt_noneuc_EnEr, data.frame(i = i, divby = divby, addback = addback, En = -Qres[4], Er = -Qres[5]))
   
 }
@@ -190,19 +185,16 @@ for(i in 1:length(traps)){
   # get the value of the covariate from the name of the list element
   b_con <- as.numeric(str_split(names(traps)[i], pattern = "_", simplify = TRUE)[2])
   # make conductance a function of some covariate 
-  covariates(mask)$noneuc <- (b_con * as.numeric((covariates(mask)$stdGC)))
+  covariates(mask)$noneuc <- exp(b_con * as.numeric(scale(covariates(mask)$stdGC)))
   
   my_traps <- read.traps(data = traps[[i]], detector = "count")
   
   for(j in 1:100){
     
-    covariates(mask)$noneuc <- exp(b_con * as.numeric((covariates(mask)$stdGC)))
-    
     simulated_points_Dcov <- sim.popn(D = D_per_ha, 
                                       core = mask, 
                                       model2D = "IHP",
                                       Ndist = "poisson")
-    
     
     ch <- sim.capthist(traps = my_traps, 
                        pop = simulated_points_Dcov, 
@@ -211,11 +203,19 @@ for(i in 1:length(traps)){
                        detectpar = list(lambda0 = lambda0, sigma = sigma * opt_noneuc_EnEr$divby[i]), 
                        detectfn = "HHN")
     
+    results_noneuc <- rbind(results_noneuc, 
+                            data.frame(i = i, j = j, 
+                                       E.N = 0, R.N = 0,
+                                       E.Nlcl = 0, R.Nlcl = 0, 
+                                       E.Nucl = 0, R.Nucl = 0, 
+                                       true.N = nrow(simulated_points_Dcov),
+                                       n = summary(ch)[[4]][1,1], detections = summary(ch)[[4]][6,1], dets_visited = summary(ch)[[4]][7,1]))
+
     # make starting values for secr.fit
-    startvals <- list(D = D_per_ha, lambda0 = lambda0, sigma = sigma)
+    startvals <- list(D = D_per_ha, lambda0 = lambda0, sigma = sigma * opt_noneuc_EnEr$divby[i], noneuc = exp(b_con))
     
-    mod <- secr.fit(capthist = ch, mask = mask, model = list(D ~ 1, noneuc ~ stdGC -1), 
-                    detectfn = "HHN", start = startvals, details = list(userdist = myLCdist))
+    mod <- secr.fit(capthist = ch, mask = mask, model = list(D ~ 1, lambda0 ~ 1, noneuc ~ stdGC -1), 
+                    detectfn = "HHN", start = startvals, details = list(userdist = myLCdist), trace = FALSE)
     
     summary(mod)
     region.N(mod)

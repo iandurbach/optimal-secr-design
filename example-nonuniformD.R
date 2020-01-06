@@ -1,4 +1,5 @@
-## 
+### Simple example generating an optimal SCR design
+### (non-uniform animal density)
 
 library(dplyr)
 library(tidyr)
@@ -8,11 +9,12 @@ library(secr)
 library(oSCR)
 library(secrdesign)
 
+# overwrite oSCR functions with ones that optimize approximate CV(Dhat)
 source("oSCR/SCRdesign_mcvd.R")
 source("oSCR/Qfn_mcvd.R")
 
 # input file contains data frames with mask locations, and all potential camera locations
-load("data/TTostExample.RData")
+load("data/TostExample.RData")
 
 # design parameters
 ndesigns <- 1

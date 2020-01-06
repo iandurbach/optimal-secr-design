@@ -46,8 +46,6 @@ newmask_df <- newmask_df %>%
   mutate(keep = (apply(e2dist(as.matrix(newmask_df), as.matrix(mask_df)), 1, min) <= buffer)) %>%
   filter(keep == TRUE) %>% dplyr::select(-keep)
 
-save(mask_df, file = "output/TostMask-for-plotting.RData")
-
 ### going to generate En, Er, CV under different designs in this survey area, varying nT, beta0, sigma, buffer
 
 ################################################
@@ -75,7 +73,8 @@ for(nT in c(20,40,60)){
                       ndesigns = ndesigns, # number of random starting points
                       beta0 = beta0,
                       sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
-                      D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100))
+                      D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100),
+                      detector = "count")
   
   opt_traps_nT <- optSCR$Xlst %>%
     purrr::reduce(rbind) %>% data.frame() %>%
@@ -102,7 +101,8 @@ for(nT in c(20, 40, 60)){
                       ndesigns = ndesigns, # number of random starting points
                       beta0 = beta0,
                       sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
-                      D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100))
+                      D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100),
+                      detector = "count")
   
   opt_traps_nT <- optSCR$Xlst %>%
     purrr::reduce(rbind) %>% data.frame() %>%
@@ -129,7 +129,8 @@ for(beta0 in c(-0.113,-0.4,-1.5)){
                       ndesigns = ndesigns, # number of random starting points
                       beta0 = beta0,
                       sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
-                      D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100))
+                      D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100),
+                      detector = "count")
   
   opt_traps_nT <- optSCR$Xlst %>%
     purrr::reduce(rbind) %>% data.frame() %>%
@@ -170,7 +171,8 @@ for(sigma in c(3000, 9000, 12000)){
                       ndesigns = ndesigns, # number of random starting points
                       beta0 = beta0,
                       sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
-                      D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100))
+                      D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100),
+                      detector = "count")
   
   opt_traps_nT <- optSCR$Xlst %>%
     purrr::reduce(rbind) %>% data.frame() %>%
@@ -261,11 +263,11 @@ for(b_ac in c(-1,1,3)){
                         ndesigns = ndesigns, # number of random starting points
                         beta0 = beta0,
                         sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
-                        D_per_mask_cell = Dcov_for_sim)
+                        D_per_mask_cell = Dcov_for_sim,
+                        detector = "count")
     
     opt_traps_nT <- optSCR$Xlst %>%
       purrr::reduce(rbind) %>% data.frame() %>%
-      rename(x = X, y = Y) %>%
       mutate(trap_id = rep(1:ndesigns, each = nT))
     
     for(i in 1:ndesigns){
@@ -298,19 +300,19 @@ for(nT in c(20,40,60)){
   for(alpha2 in c(-1, 1, 3)){
     
     set.seed(123)
-    optSCR <- SCRdesign_biObj(statespace = statespace,
-                              all.traps = my_traps,
-                              ntraps = nT, # number of cameras available
-                              ndesigns = ndesigns, # number of random starting points
-                              beta0 = beta0,
-                              sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
-                              D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100),
-                              noneuc_costs = covariates(mask)$stdGC,
-                              alpha2 = alpha2)
-    
+    optSCR <- SCRdesign(statespace = statespace,
+                        all.traps = my_traps,
+                        ntraps = nT, # number of cameras available
+                        ndesigns = ndesigns, # number of random starting points
+                        beta0 = beta0,
+                        sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
+                        D_per_mask_cell = dens_per_100km2 / 100 * (attr(mask, "area") / 100),
+                        noneuc_cov = covariates(mask)$stdGC,
+                        alpha2 = alpha2,
+                        detector = "count")
+
     opt_traps_nT <- optSCR$Xlst %>%
       purrr::reduce(rbind) %>% data.frame() %>%
-      rename(x = X, y = Y) %>%
       mutate(trap_id = rep(1:ndesigns, each = nT))
     
     for(i in 1:ndesigns){
@@ -372,11 +374,12 @@ for(b_ac in c(0, 1)){
                           ndesigns = ndesigns, # number of random starting points
                           beta0 = beta0,
                           sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
-                          D_per_mask_cell = Dcov_for_sim)
+                          D_per_mask_cell = Dcov_for_sim,
+                          detector = "count")
       
       opt_traps_nT <- optSCR$Xlst %>%
         purrr::reduce(rbind) %>% data.frame() %>%
-        rename(x = X, y = Y) %>%
+        #rename(x = X, y = Y) %>%
         mutate(trap_id = rep(1:ndesigns, each = nT))
       
       for(i in 1:ndesigns){
@@ -398,8 +401,8 @@ save(mask_df, optEnrm, opt_traps_all, file = "output/Tost_Enrm_opt.Rdata")
 
 ## now for non-optimal/ other designs
 
-# disgracefully hacky way to make a polygon just bigger than boundary of mask points
-# used later to decide which randomly generated detectors are on the mask are so allowed
+# hacky way to make a polygon just bigger than boundary of mask points
+# used later to decide which randomly generated detectors are on the mask and so allowed
 sap_1 <- mask_df %>% st_as_sf(coords = c("x", "y")) %>% st_buffer(dist = cellsize, endCapStyle = "SQUARE") %>% st_union() 
 sap_1 <- sap_1 %>% st_buffer(dist = -cellsize * 0.4, endCapStyle = "SQUARE")
 

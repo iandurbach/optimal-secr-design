@@ -172,7 +172,7 @@ m5 <- opt_traps_all %>% filter(trap_id == 1) %>%
 
 
 ggsave("output/tost-designs-nonU.png", 
-       m5, width=10, height=6, dpi = 300)
+       m5, width=10, height=4, dpi = 300)
 
 ######################
 ## Maps of example designs for non-euclidean, uniform D
@@ -207,8 +207,7 @@ m6 <- opt_traps_all %>% filter(trap_id == 1) %>%
         panel.background=element_blank(),panel.grid.major=element_blank(),
         panel.grid.minor=element_blank(),plot.background=element_blank())
 
-ggsave("output/tost-designs-nonEuc.png", 
-       m6, width=10, height=6, dpi = 300)
+ggsave("output/tost-designs-nonEuc.png", m6, width=10, height=4, dpi = 300)
 
 ######################
 ## Line graph comparing CV(D) of optimal design vs non-optimal designs 
@@ -546,13 +545,13 @@ ggsave("output/tost-misspec-alpha.png", sm3, width=10, height=6, dpi = 300)
 ######################
 
 load("output/posthoc-check-bias-nonuniD-noneuc.RData")
-results_noneucBADSTART <- results_noneuc
 
-load("output/posthoc-check-bias-noneuc-3.RData")
-results1 <- results_noneuc
-load("output/posthoc-check-bias-noneuc-4.RData")
-results2 <- results_noneuc
-results_noneuc <- rbind(results1, results2)
+# just take the first 100 sims so that same as noneuc results
+results <- results %>% group_by(D, i) %>% mutate(j = row_number()) %>% ungroup() %>% filter(j <= 100)
+
+# calculate recaps
+results <- results %>% mutate(r = detections - n)
+results_noneuc <- results_noneuc %>% mutate(r = detections - n)
 
 results <- results %>% 
   mutate(nT = recode(i, `1` = 20L, `2` = 20L, `3` = 20L, `4` = 40L, `5` = 40L, `6` = 40L,
@@ -564,31 +563,37 @@ results_noneuc <- results_noneuc %>%
   mutate(nT = recode(i, `1` = 20L, `2` = 20L, `3` = 20L, `4` = 40L, `5` = 40L, `6` = 40L,
                      `7` = 60L, `8` = 60L, `9` = 60L)) %>% 
   mutate(b_ac = recode(i, `1` = 1L, `2` = -1L, `3` = 3L, `4` = 1L, `5` = -1L, `6` = 3L,
-                       `7` = 1L, `8` = -1L, `9` = 3L)) %>% 
-  mutate(RB = 100 * (E.N - true.N) / true.N)
+                       `7` = 1L, `8` = -1L, `9` = 3L)) 
 
-bias_nonu <- results %>% filter(E.N < 100) %>% 
-  mutate(RB = 100 * (E.N - true.N) / true.N) %>% group_by(nT, b_ac) %>% 
-  summarize(medianRB = round(median(RB),1), meanRB = round(mean(RB),1), 
-            minRB = round(min(RB),1), maxRB = round(max(RB),1),
-            seRB = round(sd(RB) / sqrt(n()),1)) %>% ungroup() %>%
-  arrange(b_ac, nT) 
-
-bias_noneuc <- results_noneuc %>% filter(E.N < 100) %>% 
-  mutate(RB = 100 * (E.N - true.N) / true.N) %>% group_by(nT, b_ac) %>% 
+bias_nonu <- results %>% filter(E.N < 5000) %>%
+  mutate(RB = 100 * (E.N - true.N) / true.N) %>% group_by(nT, b_ac, D) %>% 
   summarize(medianRB = round(median(RB),1), meanRB = round(mean(RB),1), 
             minRB = round(min(RB),1), maxRB = round(max(RB),1),
             seRB = round(sd(RB) / sqrt(n()), 1),
-            mean_n = mean(n), mean_dets = mean(detections),
+            mean_n = mean(n), mean_r = mean(r), mean_dets = mean(detections),
             mean_detsused = mean(dets_visited)) %>% ungroup() %>%
-  arrange(b_ac, nT)  
+  mutate(obs_nr = paste0(round(mean_n, 1), " (", round(mean_r, 1), ")")) %>%
+  arrange(desc(D), b_ac, nT)  
 
-bias_table <- bias_nonu %>% dplyr::select(b_ac, nT, medianRB, meanRB, seRB) %>%
-  cbind(bias_noneuc %>% dplyr::select(medianRB, meanRB, seRB))
+bias_noneuc <- results_noneuc %>% filter(E.N < 5000) %>%
+  mutate(RB = 100 * (E.N - true.N) / true.N) %>% group_by(nT, b_ac, D) %>% 
+  summarize(medianRB = round(median(RB),1), meanRB = round(mean(RB),1), 
+            minRB = round(min(RB),1), maxRB = round(max(RB),1),
+            seRB = round(sd(RB) / sqrt(n()), 1),
+            mean_n = mean(n), mean_r = mean(r), mean_dets = mean(detections),
+            mean_detsused = mean(dets_visited)) %>% ungroup() %>%
+  mutate(obs_nr = paste0(round(mean_n, 1), " (", round(mean_r, 1), ")")) %>%
+  arrange(desc(D), b_ac, nT)   
+
+bias_table <- bias_nonu %>% dplyr::select(b_ac, nT, obs_nr, medianRB, meanRB, seRB) %>%
+  cbind(bias_noneuc %>% dplyr::select(obs_nr, medianRB, meanRB, seRB))
 
 bias_table %>%
   kable("latex", caption = "Group Rows", booktabs = T) %>% 
   kable_styling() %>%
-  pack_rows("", 1, 3) %>%
+  pack_rows("Density = 1 per 100 sq.km", 1, 3) %>%
   pack_rows("", 4, 6) %>%
-  pack_rows("", 7, 9) 
+  pack_rows("", 7, 9) %>%
+  pack_rows("Density = 10 per 100 sq.km", 10, 12, latex_gap_space = "1.3em") %>%
+  pack_rows("", 13, 15) %>%
+  pack_rows("", 16, 18) 
