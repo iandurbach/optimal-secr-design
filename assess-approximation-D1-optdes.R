@@ -48,7 +48,7 @@ runsim <- function (sp.ratio = seq(0.25,1.25,0.5), nx = 6, ny = 6, nrepeats = 1,
                       ndesigns = 1, # number of random starting points
                       beta0 = log(lambda0),
                       sigma = sigma, 
-                      D_per_mask_cell = D, # per mask cell not per ha!
+                      D = D, # per mask cell not per ha!
                       occasions = nocc,
                       detector = detector,
                       crit = 6, 

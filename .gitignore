@@ -6,4 +6,5 @@
 *.zip
 paper/
 old/
+output/no_commit/
 enb/

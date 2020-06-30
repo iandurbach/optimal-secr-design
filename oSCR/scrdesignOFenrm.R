@@ -1,5 +1,5 @@
 scrdesignOFenrm = function (v, alltraps, statespace, pop, N = 100, sigma, beta0, 
-                            occasions, detector, D_per_mask_cell, crit = 3, g_n234, pen_wt, sum_wt, ##
+                            occasions, detector, D, crit = 3, g_n234, pen_wt, sum_wt, ##
                             transitions = NULL, divby = 1, addback = 0) {
   
   # penalty for too clustered
@@ -13,9 +13,9 @@ scrdesignOFenrm = function (v, alltraps, statespace, pop, N = 100, sigma, beta0,
   
   if(length(beta0) > 1){
     beta0_mat <- matrix(beta0[v], nrow = 1, ncol = length(v))
-    enrm <- EnrmL(D = D_per_mask_cell, traps = traps, mask = statespace, noccasions = occasions, detectpar = list(lambda0 = exp(beta0_mat), sigma = sigma))
+    enrm <- EnrmL(D = D, traps = traps, mask = statespace, noccasions = occasions, detectpar = list(lambda0 = exp(beta0_mat), sigma = sigma))
   } else {
-    enrm <- Enrm(D = D_per_mask_cell, traps = traps, mask = statespace, noccasions = occasions, detectpar = list(lambda0 = exp(beta0)[1], sigma = sigma))
+    enrm <- Enrm(D = D, traps = traps, mask = statespace, noccasions = occasions, detectpar = list(lambda0 = exp(beta0)[1], sigma = sigma))
   }
   
   c(-enrm[1], -enrm[3], pen-(min(enrm[1],enrm[2])+sum_wt*(enrm[1]+enrm[2])))[crit]  
