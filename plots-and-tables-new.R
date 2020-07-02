@@ -572,14 +572,14 @@ mnr_sim_sum$id <- 1
 mnr_sim_sum$b_ac <- b_ac[1]
 mnr_sim_sum$b_d <- b_d[1]
 mnr_sim_sum$nT <- nT[1]
-mnr_sim_sum$D <- dens_per_100km2
+mnr_sim_sum$Dt <- dens_per_100km2
 for(i in 2:18){
   mnr_sim_sum_t <- mnr_sim[[i]]$mod_summary
   mnr_sim_sum_t$id <- i
   mnr_sim_sum_t$b_ac <- b_ac[i]
   mnr_sim_sum_t$b_d <- b_d[i]
   mnr_sim_sum_t$nT <- nT[i]
-  mnr_sim_sum_t$D <- dens_per_100km2
+  mnr_sim_sum_t$Dt <- dens_per_100km2
   mnr_sim_sum <- rbind(mnr_sim_sum, mnr_sim_sum_t)
 }
 
@@ -594,63 +594,28 @@ bias_nonu <- mnr_sim_sum %>%  filter(E.N < 4 * true.N) %>%
             n = n()) %>% ungroup() %>%
   mutate(obs_nr = paste0(round(mean_n, 1), " (", round(mean_r, 1), ")")) 
 
-%>%
-  arrange(desc(D), b_ac, nT)  
-
-
-load("output/posthoc-check-bias-nonuniD-noneuc.RData")
-
-# just take the first 100 sims so that same as noneuc results
-results <- results %>% group_by(D, i) %>% mutate(j = row_number()) %>% ungroup() %>% filter(j <= 100)
-
-# calculate recaps
-results <- results %>% mutate(r = detections - n)
-results_noneuc <- results_noneuc %>% mutate(r = detections - n)
-
-results <- results %>% 
-  mutate(nT = recode(i, `1` = 20L, `2` = 20L, `3` = 20L, `4` = 40L, `5` = 40L, `6` = 40L,
-                     `7` = 60L, `8` = 60L, `9` = 60L)) %>% 
-  mutate(b_ac = recode(i, `1` = -1L, `2` = 1L, `3` = 3L, `4` = -1L, `5` = 1L, `6` = 3L,
-                     `7` = -1L, `8` = 1L, `9` = 3L))
-
-results_noneuc <- results_noneuc %>% 
-  mutate(nT = recode(i, `1` = 20L, `2` = 20L, `3` = 20L, `4` = 40L, `5` = 40L, `6` = 40L,
-                     `7` = 60L, `8` = 60L, `9` = 60L)) %>% 
-  mutate(b_ac = recode(i, `1` = 1L, `2` = -1L, `3` = 3L, `4` = 1L, `5` = -1L, `6` = 3L,
-                       `7` = 1L, `8` = -1L, `9` = 3L)) 
-
-bias_nonu <- results %>% filter(E.N < 5000) %>%
-  mutate(RB = 100 * (E.N - true.N) / true.N) %>% group_by(nT, b_ac, D) %>% 
-  summarize(medianRB = round(median(RB),1), meanRB = round(mean(RB),1), 
-            minRB = round(min(RB),1), maxRB = round(max(RB),1),
-            seRB = round(sd(RB) / sqrt(n()), 1),
-            mean_n = mean(n), mean_r = mean(r), mean_dets = mean(detections),
-            mean_detsused = mean(dets_visited)) %>% ungroup() %>%
-  mutate(obs_nr = paste0(round(mean_n, 1), " (", round(mean_r, 1), ")")) %>%
-  arrange(desc(D), b_ac, nT)  
-
-bias_noneuc <- results_noneuc %>% filter(E.N < 5000) %>%
-  mutate(RB = 100 * (E.N - true.N) / true.N) %>% group_by(nT, b_ac, D) %>% 
-  summarize(medianRB = round(median(RB),1), meanRB = round(mean(RB),1), 
-            minRB = round(min(RB),1), maxRB = round(max(RB),1),
-            seRB = round(sd(RB) / sqrt(n()), 1),
-            mean_n = mean(n), mean_r = mean(r), mean_dets = mean(detections),
-            mean_detsused = mean(dets_visited)) %>% ungroup() %>%
-  mutate(obs_nr = paste0(round(mean_n, 1), " (", round(mean_r, 1), ")")) %>%
-  arrange(desc(D), b_ac, nT)   
-
-bias_table <- bias_nonu %>% dplyr::select(b_ac, nT, obs_nr, medianRB, meanRB, seRB) %>%
-  cbind(bias_noneuc %>% dplyr::select(obs_nr, medianRB, meanRB, seRB))
+bias_table <- bias_nonu %>% dplyr::select(b_ac, nT, obs_nr, medianRB, meanRB, seRB) %>% arrange(nT)
 
 bias_table %>%
   kable("latex", caption = "Group Rows", booktabs = T) %>% 
   kable_styling() %>%
-  pack_rows("Density = 1 per 100 sq.km", 1, 3) %>%
+  pack_rows("40 detector array", 1, 3) %>%
   pack_rows("", 4, 6) %>%
   pack_rows("", 7, 9) %>%
-  pack_rows("Density = 10 per 100 sq.km", 10, 12, latex_gap_space = "1.3em") %>%
+  pack_rows("60 detector array", 10, 12, latex_gap_space = "1.3em") %>%
   pack_rows("", 13, 15) %>%
   pack_rows("", 16, 18) 
 
+# region.N suspect for varying lambda0, compute RB on D instead
+mnr_sim_sum %>% filter(id %in% 7:12) %>% mutate(true.D = log(true.N/maskarea)) %>%
+  mutate(RB = 100 * (D - true.D) / true.D) %>% group_by(id) %>%
+  summarize(nT = mean(nT), b_ac = mean(b_ac), b_d = mean(b_d), 
+            medianRB = round(median(RB),1), meanRB = round(mean(RB),1), 
+            minRB = round(min(RB),1), maxRB = round(max(RB),1),
+            seRB = round(sd(RB) / sqrt(n()), 1),
+            mean_n = mean(n), mean_r = mean(r), mean_dets = mean(detections),
+            mean_detsused = mean(dets_visited), 
+            n = n()) %>% ungroup() %>%
+  mutate(obs_nr = paste0(round(mean_n, 1), " (", round(mean_r, 1), ")")) 
 
 

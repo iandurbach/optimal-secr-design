@@ -19,8 +19,8 @@ dyn.load("oSCR/mysecrdesign.so")
 # gives error if detector type is a factor, check!
 
 # load results
-load("output/new/Tost_examples_nonuniD_new.Rdata")  
-load("output/new/Tost_examples_nonopt_D1_new.Rdata")  
+load("output/Tost_examples_nonuniD.Rdata")  
+load("output/Tost_examples_nonopt_D1.Rdata")  
 
 # put ids
 ids <- c(rep(1,40), rep(2,60), rep(3, 40), rep(4,60), rep(5,40), rep(6, 60), 
@@ -46,7 +46,7 @@ dens_per_100km2 <- 2
 # arguments for secr fit 
 model.args_list <- list()
 for(i in 1:6){model.args_list[[i]] <- formula(D ~ stdGC)}
-for(i in 7:12){model.args_list[[i]] <- formula(D ~ stdGC)}
+for(i in 7:12){model.args_list[[i]] <- formula(lambda0 ~ mnsx)}
 for(i in 13:18){model.args_list[[i]] <- list(formula(D ~ stdGC), formula(lambda0 ~ mnsx))}
 
 Dcov_for_sim_ha <- list()
@@ -197,10 +197,19 @@ for(i in 1:18){
 
 ###
 
+# load("output/mnr-res-D1.RData")
+# rm(mnr_sim)
+# load("output/grid-res-D1.RData")
+# rm(grid_sim)
+# load("output/opt_grid-res-D1.RData")
+# rm(opt_grid_sim)
+# 
+# save(mnr_sim_sum, grid_sim_sum, opt_grid_sim_sum, file="output/all-res-D1-simsum-only.RData")
+
 library(TSP)
 library(kableExtra)
 
-load("output/new/all-res-D1-simsum-only.RData")
+load("output/all-res-D1-simsum-only.RData")
 
 # combine
 sim_sum <- rbind(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum)

@@ -62,8 +62,8 @@ mnr <- scrdesignGAenrm(statespace = mask,
                        D = D,
                        occasions = 1,
                        detector = "count",
-                       ngen = 5,
-                       popsize = 500,
+                       ngen = 30,
+                       popsize = 1000,
                        crit = 3,
                        seed = 700)
 
