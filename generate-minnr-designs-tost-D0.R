@@ -12,8 +12,8 @@ library(oSCR)
 library(raster)
 library(kofnGA)
 
-source("oSCR/SCRdesignGAenrm.R")
-source("oSCR/SCRdesignOFenrm.R")
+source("oSCR/scrdesignGAenrm.R")
+source("oSCR/scrdesignOFenrm.R")
 
 # https://www.r-bloggers.com/three-ways-to-call-cc-from-r/
 source("oSCR/LambdaL.R")
@@ -96,7 +96,7 @@ for(n in c(20,40,60)){
                          D = D,
                          occasions = 1,
                          detector = "count",
-                         ngen = 30,
+                         ngen = 50,
                          popsize = 1000,
                          crit = 3,
                          seed = 700)
@@ -121,7 +121,7 @@ for(n in c(20,40,60)){
                          D = D,
                          occasions = 1,
                          detector = "count",
-                         ngen = 30,
+                         ngen = 50,
                          popsize = 1000,
                          crit = 3,
                          seed = 222)
@@ -150,7 +150,7 @@ for(n in c(20, 40, 60)){
                          D = D,
                          occasions = 1,
                          detector = "count",
-                         ngen = 30,
+                         ngen = 50,
                          popsize = 1000,
                          crit = 3,
                          seed = 222)
@@ -180,7 +180,7 @@ for(lam in c(0.5*lambda0, 1.5*lambda0, 2*lambda0)){
                          D = D,
                          occasions = 1,
                          detector = "count",
-                         ngen = 30,
+                         ngen = 50,
                          popsize = 1000,
                          crit = 3,
                          seed = 222)
@@ -223,7 +223,7 @@ for(s in c(0.5*sigma, 1.5*sigma, 2*sigma)){
                          D = D,
                          occasions = 1,
                          detector = "count",
-                         ngen = 30,
+                         ngen = 50,
                          popsize = 1000,
                          crit = 3,
                          seed = 222)
@@ -251,7 +251,7 @@ for(d in c("multi", "proximity", "count")){
                          D = D,
                          occasions = 5,
                          detector = d,
-                         ngen = 30,
+                         ngen = 50,
                          popsize = 1000,
                          crit = 3,
                          seed = 222)

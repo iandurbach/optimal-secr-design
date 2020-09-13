@@ -109,7 +109,7 @@ for(i in 1:18){
   
 }
 
-#save(mnr_sim_sum, mnr_sim, Dcov_for_sim_ha, lambda0_list, file="output/new/mnr-res-D1.RData")
+#save(mnr_sim_sum, mnr_sim, Dcov_for_sim_ha, lambda0_list, file="output/no_commit/mnr-res-D1.RData")
 
 grid_sim <- list()
 for(i in 1:18){
@@ -150,7 +150,7 @@ for(i in 1:18){
   
 }
 
-#save(grid_sim_sum, grid_sim,  Dcov_for_sim_ha, lambda0_list, file="output/new/grid-res-D1.RData")
+#save(grid_sim_sum, grid_sim,  Dcov_for_sim_ha, lambda0_list, file="output/no_commit/grid-res-D1.RData")
 
 opt_grid_sim <- list()
 for(i in 1:18){
@@ -191,82 +191,6 @@ for(i in 1:18){
   
 }
 
-#save(opt_grid_sim_sum, opt_grid_sim,  Dcov_for_sim_ha, lambda0_list, file="output/new/opt_grid-res-D1.RData")
+#save(opt_grid_sim_sum, opt_grid_sim,  Dcov_for_sim_ha, lambda0_list, file="output/no_commit/opt_grid-res-D1.RData")
 
-#save(mnr_sim_sum, grid_sim_sum, opt_grid_sim_sum, file="output/new/all-res-D1-simsum-only.RData")
-
-###
-
-# load("output/mnr-res-D1.RData")
-# rm(mnr_sim)
-# load("output/grid-res-D1.RData")
-# rm(grid_sim)
-# load("output/opt_grid-res-D1.RData")
-# rm(opt_grid_sim)
-# 
-# save(mnr_sim_sum, grid_sim_sum, opt_grid_sim_sum, file="output/all-res-D1-simsum-only.RData")
-
-library(TSP)
-library(kableExtra)
-
-load("output/all-res-D1-simsum-only.RData")
-
-# combine
-sim_sum <- rbind(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum)
-
-# add shortest paths
-
-opt_traps_all <- opt_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
-                                                           shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
-
-grid_traps_all <- grid_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
-                                                             shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
-opt_grid_traps_all <- opt_grid_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
-                                                                     shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
-
-all_shortest_paths <- rbind(opt_traps_all %>% mutate(design = "mnr_mod"), 
-                            grid_traps_all %>% mutate(design = "grid_mod"), 
-                            opt_grid_traps_all %>% mutate(design = "opt_grid_mod")) %>% 
-  group_by(design, id) %>% summarize(shortest_path = first(shortest_path)) %>% rename(trap_id = id) %>% ungroup()
-
-
-# compare
-
-all_sum <- sim_sum %>% group_by(trap_id, design) %>% summarize(approx_cv = 1 / sqrt(min(mean(En), mean(Er))),
-                                                               sim_cv = sd(E.N) / mean(E.N),
-                                                               n = mean(n), En = mean(En),
-                                                               r = mean(r), Er = mean(Er),
-                                                               m = mean(moves), Em = mean(Em),
-                                                               ecva = sd(esa) / mean(esa),
-                                                               esa = mean(esa),
-                                                               cvN = mean(cvN), cva = mean(cva), cvD = mean(cvD),
-                                                               nsim = n()) %>% ungroup() %>%
-  left_join(all_shortest_paths, by = c("trap_id", "design"))
-
-all_sum %>% 
-  mutate(b_ac = rep(b_ac, each = 3), b_d = rep(b_d, each = 3), nT = rep(nT, each = 3), cv_a = round(100*ecva,0),
-         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0), shortest_path = round(shortest_path/1000,0)) %>%
-  mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>% 
-  filter(nT == 40) %>%
-  dplyr::select(trap_id, b_ac, b_d, design, sim_cv, approx_cv, cv_a) %>%
-  pivot_wider(names_from = "design", values_from = c("sim_cv", "approx_cv", "cv_a")) %>%
-  #dplyr::select(trap_id, b_ac, b_d, mnr_mod, grid_mod, opt_grid_mod) %>%
-  kable("latex", caption = "Group Rows", booktabs = T) %>% 
-  kable_styling() %>%
-  pack_rows("", 1, 3) %>%
-  pack_rows("", 4, 6) %>%
-  pack_rows("", 7, 9) 
-
-all_sum %>% 
-  mutate(b_ac = rep(b_ac, each = 3), b_d = rep(b_d, each = 3), nT = rep(nT, each = 3), cv_a = round(100*ecva,0),
-         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0), shortest_path = round(shortest_path/1000,0)) %>%
-  mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>% 
-  filter(nT == 40) %>%
-  dplyr::select(trap_id, b_ac, b_d, design, shortest_path) %>%
-  pivot_wider(names_from = "design", values_from = c("shortest_path")) %>%
-  #dplyr::select(trap_id, b_ac, b_d, mnr_mod, grid_mod, opt_grid_mod) %>%
-  kable("latex", caption = "Group Rows", booktabs = T) %>% 
-  kable_styling() %>%
-  pack_rows("", 1, 3) %>%
-  pack_rows("", 4, 6) %>%
-  pack_rows("", 7, 9) 
+#save(mnr_sim_sum, grid_sim_sum, opt_grid_sim_sum, file="output/all-res-D1-simsum-only.RData")

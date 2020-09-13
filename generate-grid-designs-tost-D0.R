@@ -308,7 +308,7 @@ for(lam in c(0.5*lambda0, 1.5*lambda0, 2*lambda0)){
   grid_traps <- read.traps(data = grid_traps, detector = dt)
   
   # compute optimal spacing for previous grid 
-  dd <- optimalSpacing(D = D, traps = grid_traps, detectpar = list(lam = lam, sigma = sigma), noccasions = 1)$rotRSE$optimum.spacing
+  dd <- optimalSpacing(D = D, traps = grid_traps, detectpar = list(lambda0 = lam, sigma = sigma), noccasions = 1)$rotRSE$optimum.spacing
   
   # sometimes optimal spacing is too big to fit desired number of traps in; if so, reduce dd until it is
   n_opt_grid <- 0
@@ -471,4 +471,4 @@ for(d in c("multi", "proximity", "count")){
   
 }
 
-save(mask_df, grid_traps_all, opt_grid_traps_all, file = "output/new/Tost_examples_nonopt_D0_new.Rdata")
+save(mask_df, grid_traps_all, opt_grid_traps_all, file = "output/Tost_examples_nonopt_D0_new.Rdata")

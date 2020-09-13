@@ -12,8 +12,8 @@ library(oSCR)
 library(raster)
 library(kofnGA)
 
-source("oSCR/SCRdesignGAenrm.R")
-source("oSCR/SCRdesignOFenrm.R")
+source("oSCR/scrdesignGAenrm.R")
+source("oSCR/scrdesignOFenrm.R")
 
 # https://www.r-bloggers.com/three-ways-to-call-cc-from-r/
 source("oSCR/LambdaL.R")

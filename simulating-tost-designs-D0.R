@@ -14,8 +14,8 @@ library(secrdesign)
 source("fn-simulating-cvD.R")
 
 # load results
-load("output/new/Tost_examples_all_D0_new.Rdata")  
-load("output/new/Tost_examples_nonopt_D0_new.Rdata")  
+load("output/Tost_examples_all_D0.Rdata")  
+load("output/Tost_examples_nonopt_D0.Rdata")  
 
 # put ids
 ids <- c(rep(1,20), rep(2,40), rep(3, 60), rep(4,20), rep(5,40), rep(6, 60), 
@@ -48,7 +48,7 @@ for(i in 1:18){
   
 }
 
-save(mnr_sim_sum, mnr_sim, file="output/new/mnr-res.RData")
+#save(mnr_sim_sum, mnr_sim, file="output/mnr-res.RData")
 
 grid_sim <- list()
 for(i in 1:18){
@@ -71,10 +71,10 @@ for(i in 1:18){
   
 }
 
-save(grid_sim_sum, grid_sim, file="output/new/grid-res.RData")
+#save(grid_sim_sum, grid_sim, file="output/grid-res.RData")
 
 opt_grid_sim <- list()
-for(i in 1:18){
+for(i in 10:12){
   
   D <- 2/10000
   mask <- all_masks[[i]]
@@ -94,79 +94,6 @@ for(i in 1:18){
   
 }
 
-save(opt_grid_sim_sum, opt_grid_sim, file="output/new/opt_grid-res.RData")
+save(opt_grid_sim_sum, opt_grid_sim, file="output/no_commit/opt_grid-res.RData")
 
-save(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum, file = "output/new/all-res-D0-simsum-only.RData")
-
-###
-
-load("output/new/all-res-D0-simsum-only.RData")
-
-# combine
-sim_sum <- rbind(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum)
-
-# compare
-
-all_sum <- sim_sum %>% group_by(trap_id, design) %>% summarize(approx_cv = 1 / sqrt(min(mean(En), mean(Er))),
-                                                               sim_cv = sd(E.N) / mean(E.N),
-                                                               n = mean(n), En = mean(En),
-                                                               r = mean(r), Er = mean(Er),
-                                                               m = mean(moves), Em = mean(Em),
-                                                               ecva = sd(esa) / mean(esa),
-                                                               esa = mean(esa),
-                                                               cvN = mean(cvN), cva = mean(cva), cvD = mean(cvD),
-                                                               nsim = n()) 
-
-library(kableExtra)
-all_sum %>% mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>%
-  mutate(En = round(En,1), Er = round(Er, 1), 
-         nn = paste0(round(n,1)," (",round(En,1),")"), rr = paste0(round(r,1)," (",round(Er,1),")"), 
-         cv_a = round(100*ecva,0),
-         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0), shortest_path = round(shortest_path/1000,0)) %>% 
-  dplyr::select(trap_id, design, sim_cv, approx_cv, cv_a) %>%
-  pivot_wider(names_from = "design", values_from = c("sim_cv", "approx_cv", "cv_a")) %>%
-  #dplyr::select(trap_id, mnr_mod, grid_mod, opt_grid_mod) %>%
-  kable("latex", caption = "Group Rows", booktabs = T) %>% 
-  kable_styling() %>%
-  pack_rows("", 1, 3) %>%
-  pack_rows("", 4, 6) %>%
-  pack_rows("", 7, 9) %>%
-  pack_rows("", 10, 12) %>%
-  pack_rows("", 13, 15) %>%
-  pack_rows("", 16, 18)
-
-# add shortest paths
-
-library(TSP)
-opt_traps_all <- opt_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
-                                                           shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
-grid_traps_all <- grid_traps_all %>% dplyr::select(-dist2pt) %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
-                                                                                         shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
-opt_grid_traps_all <- opt_grid_traps_all %>% dplyr::select(-dist2pt) %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
-                                                                                                 shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
-
-all_shortest_paths <- rbind(opt_traps_all %>% mutate(design = "mnr_mod"), 
-                            grid_traps_all %>% mutate(design = "grid_mod"), 
-                            opt_grid_traps_all %>% mutate(design = "opt_grid_mod")) %>% 
-  group_by(design, id) %>% summarize(shortest_path = first(shortest_path)) %>% rename(trap_id = id) %>% ungroup()
-
-all_sum <-  all_sum %>%
-  left_join(all_shortest_paths, by = c("trap_id", "design"))
-
-all_sum %>% mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>%
-  mutate(En = round(En,1), Er = round(Er, 1), 
-         nn = paste0(round(n,1)," (",round(En,1),")"), rr = paste0(round(r,1)," (",round(Er,1),")"), 
-         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0), shortest_path = round(shortest_path/1000,0)) %>% 
-  dplyr::select(trap_id, design, shortest_path) %>%
-  pivot_wider(names_from = "design", values_from = c("shortest_path")) %>%
-  #dplyr::select(trap_id, mnr_mod, grid_mod, opt_grid_mod) %>%
-  kable("latex", caption = "Group Rows", booktabs = T) %>% 
-  kable_styling() %>%
-  pack_rows("", 1, 3) %>%
-  pack_rows("", 4, 6) %>%
-  pack_rows("", 7, 9) %>%
-  pack_rows("", 10, 12) %>%
-  pack_rows("", 13, 15) %>%
-  pack_rows("", 16, 18)
-
-
+save(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum, file = "output/all-res-D0-simsum-only.RData")

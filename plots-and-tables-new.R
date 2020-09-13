@@ -6,15 +6,20 @@ library(gridExtra)
 library(kableExtra)
 library(oSCR)
 library(tidyr)
+library(kableExtra)
+library(TSP)
 
 ######################
-## Figure 1: approximation accuracy for spatially-varying designs
+## Figure 1: see file illustrating-minnr-designs-fig-1.R
+######################
+
+######################
+## Figure 2: approximation accuracy for spatially-varying designs
 ######################
 
 load("output/approx-checks-D123.RData")
 
 plot1.cols <- c( "#F5940F", "#0AAA2E", "#B061C2") 
-plot2.cols <- c("#EC142B", "#1435EC", "#B061C2") 
 sims_sum <- sims_sum %>% mutate(gridsize = factor(gridsize, levels = c("6x6", "8x8", "10x10")))
 
 sims_sum$cov2 <- factor(sims_sum$cov, levels = c("D1","D3", "D2"),
@@ -42,32 +47,14 @@ p1 <- sims_sum %>% filter(lambda0 == 0.2, Dmod == "D23") %>%
         legend.box.margin=margin(-10,-10,-10,-10))
 p1
 
-m_abc <- data.frame(cov2 = levels(sims_sum$cov2), x = 0.1, y = 0, labs = c("(d)", "(e)", "(f)"))
-p2 <- sims_sum %>% filter(gridsize == "10x10", Dmod == "D23") %>%
-  mutate(lambda0 = factor(lambda0)) %>%
-  ggplot(aes(x = sp.ratio, y = 100*emp_cvD, colour = lambda0)) + 
-  geom_point() + geom_line() +
-  facet_grid(.~cov2, labeller = label_parsed) +
-  geom_text(data = m_abc, inherit.aes = FALSE, aes(x = x, y = y, label = labs), hjust = 0.5, vjust = 0) + 
-  geom_point(aes(y = 100*th_cvD), shape = 2) +
-  geom_line(aes(y = 100*th_cvD), linetype = 2) +
-  scale_color_manual(values = plot2.cols, labels = c(expression(paste(lambda[0],"=0.05")),
-                                                     expression(paste(lambda[0],"=0.1")),
-                                                     expression(paste(lambda[0],"=0.2")))) +
-  xlab(bquote("Detector spacing ("*sigma~"units)")) + ylab(bquote("CV("*hat(D)*") %")) + theme_bw() + xlim(c(0,3.5)) +
-  coord_cartesian(xlim = c(0,3.5), ylim = c(0, 70)) +
-  theme(legend.position = "bottom", legend.title = element_blank(), legend.margin=margin(0,0,5,0),
-        legend.box.margin=margin(-10,-10,-10,-10))
-p2
-
 ggsave("output/approx-nonuniform.png", p1, width=9, height=3, dpi = 300)
-ggsave("output/approx-nonuniform2.png", p2, width=9, height=3, dpi = 300)
 
 ######################
-## Maps of example designs for uniform D, euclidean
+## Figure 3: Maps of example designs for uniform D
 ######################
 
 # load results
+load("data/Tost.Rdata")
 load("output/Tost_examples_all_D0.Rdata")  
 
 # split out 
@@ -195,9 +182,10 @@ ggsave("output/tost-uni-designs.png",
        arrangeGrob(m0,m1,m2,m3,m4,m4b, ncol = 1), width=10, height=12, dpi = 300)
 
 ######################
-## Maps of example designs for non-Uniform D, euclidean
+## Figure 4: Maps of example designs for non-Uniform D and lambda0
 ######################
 
+load("data/Tost.Rdata")
 load("output/Tost_examples_nonuniD.Rdata")  
 
 opt_traps_D1_all$nT2 <- factor(opt_traps_D1_all$nT, levels = c("40", "60"), 
@@ -278,103 +266,7 @@ ggsave("output/tost-designs-nonU.png",
        arrangeGrob(m5a,m5b,m5c, ncol = 1), width=10, height=6, dpi = 300)
 
 ######################
-## Distributions of inter-detector distances in optimal designs
-######################
-
-load("output/Tost_examples_all_D0.Rdata")  
-load("output/Tost_examples_nonopt_D0.Rdata")  
-
-all_traps <- rbind(opt_traps_all %>% filter(row_number() <= 120) %>% mutate(method = "mnr"),
-                   grid_traps_all %>% filter(row_number() <= 120) %>% mutate(method = "grid") %>% dplyr::select(-dist2pt), 
-                   opt_grid_traps_all%>% filter(row_number() <= 120) %>% mutate(method = "optgrid") %>% dplyr::select(-dist2pt))
-
-# add a camera id to each array
-all_traps <- all_traps %>% group_by(method, nT) %>% mutate(cam_id = row_number()) %>% ungroup()
-
-# extract distance to closest detector for each detector 
-myseq <- seq(2000,16000,1000)
-closest_detectors <- all_traps %>% 
-  group_by(method, nT) %>% 
-  mutate(nearest_detdist = apply(e2dist(cbind(x,y), cbind(x,y)), 1, function(x){sort(x, FALSE)[2]}),
-         nearest_cat = cut(nearest_detdist, breaks = 8, right = FALSE),
-         mean_detdist = apply(e2dist(cbind(x,y), cbind(x,y)), 1, mean),
-         mean_cat = cut(mean_detdist, breaks = 8, right = FALSE)) %>%
-  arrange(method, nT, nearest_detdist) %>%
-  ungroup() %>% group_by(method, nT) %>% 
-  mutate(Fx = row_number() / n()) %>% ungroup()
-
-closest_detectors$nT2 <- factor(closest_detectors$nT, levels = c("20", "40", "60"), 
-                                labels = c(expression(paste("20 detectors")), 
-                                           expression(paste("40 detectors")), 
-                                           expression(paste("60 detectors"))))
-closest_detectors$method2 <- factor(closest_detectors$method, levels = c("grid", "optgrid", "mnr"),
-                                    labels = c("Regular grid", "Regular grid + optimal.Spacing", "Min(n,r)"))
-
-
-m_abc <- data.frame(nT2 = levels(closest_detectors$nT2), x = 12, y = 0, labs = c("(a)", "(b)", "(c)"))
-m8b <- closest_detectors %>% filter(nT %in% c(20,40,60)) %>%
-  ggplot(aes(x = nearest_detdist/1000, y = Fx)) + 
-  geom_path(aes(colour = method2)) + facet_grid(. ~ nT2, labeller = label_parsed) +
-  geom_text(data = m_abc, aes(x = x, y = y, label = labs), hjust = 1, vjust = 0) + 
-  xlab("Nearest-detector distance (km)") + ylab("Cumulative probability") + 
-  theme_bw(base_size = 14) +
-  coord_cartesian(xlim = c(0, 12)) +
-  scale_color_brewer(palette = "Dark2") +
-  scale_x_continuous(breaks=seq(0,12,2)) +
-  theme(legend.position="none",legend.title = element_blank(), 
-        panel.background=element_blank(),panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank(),plot.background=element_blank())
-m8b
-
-cdf_data <- data.frame(dists = as.numeric(), Fx = as.numeric(), nT = as.integer(), method = as.character())
-for(m in unique(all_traps$method)){
-  for(i in c(20,40,60)){
-    if(!((m == "survey")&(i == 60))){
-        allxt <- c()
-        for(j in 1:1){
-          xx <- all_traps %>% filter(nT == i, trap_id == j, method == m)
-          ds <- e2dist(cbind(xx$x, xx$y),cbind(xx$x, xx$y))
-          diag(ds) <- NA
-          allxt <- c(allxt, unlist(ds[!is.na(ds)]))
-        }
-        
-        cdf_data <- rbind(cdf_data, 
-                          data.frame(dists = sort(allxt), 
-                                     Fx = seq(0, 1, length.out = length(allxt)),
-                                     nT = i,
-                                     method = m)) 
-    }
-  }
-}
-
-cdf_data$nT2 <- factor(cdf_data$nT, levels = c("20", "40", "60"), 
-                       labels = c(expression(paste("20 detectors")), 
-                                  expression(paste("40 detectors")), 
-                                  expression(paste("60 detectors"))))
-cdf_data$method2 <- factor(cdf_data$method, levels = c("grid", "optgrid", "mnr"),
-                                    labels = c("Regular grid", "Regular grid + optimal.Spacing", "Min(n,r)"))
-
-m_abc <- data.frame(nT2 = levels(cdf_data$nT2), x = 100, y = 0, labs = c("(d)", "(e)", "(f)"))
-m9b <- cdf_data %>% 
-  ggplot(aes(x = dists/1000, y = Fx)) + 
-  geom_path(aes(colour = method2)) + facet_grid(. ~ nT2, labeller = label_parsed) +
-  geom_text(data = m_abc, aes(x = x, y = y, label = labs), hjust = 1, vjust = 0) + 
-  xlab("Between-detector distance (km)") + ylab("Cumulative probability") + 
-  theme_bw(base_size = 14) +
-  scale_color_brewer(palette = "Dark2") +
-  scale_x_continuous(breaks = c(0, 25, 50, 75, 100)) +
-  theme(legend.position="bottom",legend.title = element_blank(),
-        panel.background=element_blank(),panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank(),plot.background=element_blank(),
-        legend.margin=margin(0,0,5,0), legend.box.margin=margin(-10,-10,-10,-10))
-m9b
-
-ggsave("output/tost-trap-dists.png", 
-       arrangeGrob(m8b, m9b, ncol = 1, heights = c(5,6)), width=10, height=6, dpi = 300)
-
-
-######################
-## Covariate coverage plots
+## Figure 5: Covariate coverage plots
 ######################
 
 load("output/Tost_examples_all_D0.Rdata")  
@@ -395,10 +287,10 @@ opt_traps_D1_all$b_ac2 <- factor(opt_traps_D1_all$b_ac, levels = c("-1", "0", "1
                                                             expression(paste(alpha[D]," = 3"))))
 
 opt_traps_D1_all$b_det2 <- factor(opt_traps_D1_all$b_det, levels = c("-0.75", "0", "0.75","1.5"),
-                                 ordered = TRUE, labels = c(expression(paste(alpha[lambda[0]]," = -0.75")),
-                                                            expression(paste(alpha[lambda[0]]," = 0")),
-                                                            expression(paste(alpha[lambda[0]]," = 0.75")),
-                                                            expression(paste(alpha[lambda[0]]," = 1.5"))))
+                                  ordered = TRUE, labels = c(expression(paste(alpha[lambda[0]]," = -0.75")),
+                                                             expression(paste(alpha[lambda[0]]," = 0")),
+                                                             expression(paste(alpha[lambda[0]]," = 0.75")),
+                                                             expression(paste(alpha[lambda[0]]," = 1.5"))))
 # D covariate coverage
 
 linedata <- expand.grid(stdGC = seq(from = min(mask_df$stdGC), to = max(mask_df$stdGC), length.out = 100),
@@ -462,8 +354,136 @@ m10b
 ggsave("output/tost-coverage.png", arrangeGrob(m10a, m10b, ncol = 1), width=10, height=6, dpi = 300)
 
 ######################
-## supplementary material -- tost
+## Table 1: Simulated and approximate CV(D) for uniform D designs
 ######################
+
+load("output/all-res-D0-simsum-only.RData")
+
+# combine
+sim_sum <- rbind(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum)
+
+# compare
+all_sum <- sim_sum %>% group_by(trap_id, design) %>% summarize(approx_cv = 1 / sqrt(min(mean(En), mean(Er))),
+                                                               sim_cv = sd(E.N) / mean(E.N),
+                                                               n = mean(n), En = mean(En),
+                                                               r = mean(r), Er = mean(Er),
+                                                               m = mean(moves), Em = mean(Em),
+                                                               ecva = sd(esa) / mean(esa),
+                                                               esa = mean(esa),
+                                                               cvN = mean(cvN), cva = mean(cva), cvD = mean(cvD),
+                                                               nsim = n()) 
+
+
+all_sum %>% mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>%
+  mutate(En = round(En,1), Er = round(Er, 1), 
+         nn = paste0(round(n,1)," (",round(En,1),")"), rr = paste0(round(r,1)," (",round(Er,1),")"), 
+         cv_a = round(100*ecva,0),
+         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0)) %>% 
+  dplyr::select(trap_id, design, sim_cv, approx_cv, cv_a) %>%
+  pivot_wider(names_from = "design", values_from = c("sim_cv", "approx_cv", "cv_a")) %>%
+  #dplyr::select(trap_id, mnr_mod, grid_mod, opt_grid_mod) %>%
+  kable("latex", caption = "Group Rows", booktabs = T) %>% 
+  kable_styling() %>%
+  pack_rows("", 1, 3) %>%
+  pack_rows("", 4, 6) %>%
+  pack_rows("", 7, 9) %>%
+  pack_rows("", 10, 12) %>%
+  pack_rows("", 13, 15) %>%
+  pack_rows("", 16, 18)
+
+######################
+## Table 2: Simulated and approximate CV(D) for non-uniform designs
+######################
+
+load("output/all-res-D1-simsum-only.RData")
+
+# set up parameter values in same order used to generate optimal designs, so can associate possibly spatially
+# varying D and lambda0 with each combination
+
+b_ac <- c(-1, -1, 1, 1, 3, 3, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1)
+b_d <- c(0, 0, 0, 0, 0, 0, -0.75, -0.75, 0.75, 0.75, 1.5, 1.5, -0.75, -0.75, 0.75, 0.75, 1.5, 1.5)
+nT <- rep(c(40,60), times = 9)
+dens_per_100km2 <- 2
+
+# combine
+sim_sum <- rbind(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum)
+
+# compare
+all_sum <- sim_sum %>% group_by(trap_id, design) %>% summarize(approx_cv = 1 / sqrt(min(mean(En), mean(Er))),
+                                                               sim_cv = sd(E.N) / mean(E.N),
+                                                               n = mean(n), En = mean(En),
+                                                               r = mean(r), Er = mean(Er),
+                                                               m = mean(moves), Em = mean(Em),
+                                                               ecva = sd(esa) / mean(esa),
+                                                               esa = mean(esa),
+                                                               cvN = mean(cvN), cva = mean(cva), cvD = mean(cvD),
+                                                               nsim = n()) %>% ungroup() 
+
+all_sum %>% 
+  mutate(b_ac = rep(b_ac, each = 3), b_d = rep(b_d, each = 3), nT = rep(nT, each = 3), cv_a = round(100*ecva,0),
+         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0)) %>%
+  mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>% 
+  filter(nT == 40) %>%
+  dplyr::select(trap_id, b_ac, b_d, design, sim_cv, approx_cv, cv_a) %>%
+  pivot_wider(names_from = "design", values_from = c("sim_cv", "approx_cv", "cv_a")) %>%
+  #dplyr::select(trap_id, b_ac, b_d, mnr_mod, grid_mod, opt_grid_mod) %>%
+  kable("latex", caption = "Group Rows", booktabs = T) %>% 
+  kable_styling() %>%
+  pack_rows("", 1, 3) %>%
+  pack_rows("", 4, 6) %>%
+  pack_rows("", 7, 9) 
+
+##################################################################
+##################################################################
+##################################################################
+###################### SUPPLEMENTARY MATERIAL ####################
+##################################################################
+##################################################################
+##################################################################
+
+######################
+## Supplementary material Figure 1: approximation accuracy for spatially-varying designs
+######################
+
+load("output/approx-checks-D123.RData")
+
+plot2.cols <- c("#EC142B", "#1435EC", "#B061C2") 
+sims_sum <- sims_sum %>% mutate(gridsize = factor(gridsize, levels = c("6x6", "8x8", "10x10")))
+
+sims_sum$cov2 <- factor(sims_sum$cov, levels = c("D1","D3", "D2"),
+                        ordered = TRUE, labels = c(expression(paste(D %~% 1)),
+                                                   expression(paste(D %~% -sqrt((x-bar(x))^2+(y-bar(y))^2))),
+                                                   expression(paste(D %~% sqrt(xy)))))
+
+sims_sum$lambda02 <- factor(sims_sum$lambda0, levels = c("0.05","0.1", "0.2"),
+                            ordered = TRUE, labels = c(expression(paste(lambda[0],"=0.05")),
+                                                       expression(paste(lambda[0],"=0.1")),
+                                                       expression(paste(lambda[0],"=0.2"))))
+
+m_abc <- data.frame(cov2 = levels(sims_sum$cov2), x = 0.1, y = 0, labs = c("(d)", "(e)", "(f)"))
+p2 <- sims_sum %>% filter(gridsize == "10x10", Dmod == "D23") %>%
+  mutate(lambda0 = factor(lambda0)) %>%
+  ggplot(aes(x = sp.ratio, y = 100*emp_cvD, colour = lambda0)) + 
+  geom_point() + geom_line() +
+  facet_grid(.~cov2, labeller = label_parsed) +
+  geom_text(data = m_abc, inherit.aes = FALSE, aes(x = x, y = y, label = labs), hjust = 0.5, vjust = 0) + 
+  geom_point(aes(y = 100*th_cvD), shape = 2) +
+  geom_line(aes(y = 100*th_cvD), linetype = 2) +
+  scale_color_manual(values = plot2.cols, labels = c(expression(paste(lambda[0],"=0.05")),
+                                                     expression(paste(lambda[0],"=0.1")),
+                                                     expression(paste(lambda[0],"=0.2")))) +
+  xlab(bquote("Detector spacing ("*sigma~"units)")) + ylab(bquote("CV("*hat(D)*") %")) + theme_bw() + xlim(c(0,3.5)) +
+  coord_cartesian(xlim = c(0,3.5), ylim = c(0, 70)) +
+  theme(legend.position = "bottom", legend.title = element_blank(), legend.margin=margin(0,0,5,0),
+        legend.box.margin=margin(-10,-10,-10,-10))
+p2
+
+ggsave("output/approx-nonuniform2.png", p2, width=9, height=3, dpi = 300)
+
+######################
+## Supplementary material Figure 2: Tost
+######################
+
 library(secr)
 library(secrdesign)
 
@@ -492,7 +512,102 @@ traps <- read.traps(data = data.frame(x = TostCams$x, y = TostCams$y), detector 
 Enrm(D = 2/10000, traps, mask, list(lambda0 = 1, sigma = 3000), noccasions = 1)
 
 ######################
-## supplementary material -- plot of sensitivity to misspecification 
+## Supplementary material Figure 3: Distributions of inter-detector distances in optimal designs
+######################
+
+load("output/Tost_examples_all_D0.Rdata")  
+load("output/Tost_examples_nonopt_D0.Rdata")  
+
+all_traps <- rbind(opt_traps_all %>% filter(row_number() <= 120) %>% mutate(method = "mnr"),
+                   grid_traps_all %>% filter(row_number() <= 120) %>% mutate(method = "grid") %>% dplyr::select(-dist2pt), 
+                   opt_grid_traps_all%>% filter(row_number() <= 120) %>% mutate(method = "optgrid") %>% dplyr::select(-dist2pt))
+
+# add a camera id to each array
+all_traps <- all_traps %>% group_by(method, nT) %>% mutate(cam_id = row_number()) %>% ungroup()
+
+# extract distance to closest detector for each detector 
+myseq <- seq(2000,16000,1000)
+closest_detectors <- all_traps %>% 
+  group_by(method, nT) %>% 
+  mutate(nearest_detdist = apply(e2dist(cbind(x,y), cbind(x,y)), 1, function(x){sort(x, FALSE)[2]}),
+         nearest_cat = cut(nearest_detdist, breaks = 8, right = FALSE),
+         mean_detdist = apply(e2dist(cbind(x,y), cbind(x,y)), 1, mean),
+         mean_cat = cut(mean_detdist, breaks = 8, right = FALSE)) %>%
+  arrange(method, nT, nearest_detdist) %>%
+  ungroup() %>% group_by(method, nT) %>% 
+  mutate(Fx = row_number() / n()) %>% ungroup()
+
+closest_detectors$nT2 <- factor(closest_detectors$nT, levels = c("20", "40", "60"), 
+                                labels = c(expression(paste("20 detectors")), 
+                                           expression(paste("40 detectors")), 
+                                           expression(paste("60 detectors"))))
+closest_detectors$method2 <- factor(closest_detectors$method, levels = c("grid", "optgrid", "mnr"),
+                                    labels = c("Regular grid", "Regular grid + optimal.Spacing", "Min(n,r)"))
+
+
+m_abc <- data.frame(nT2 = levels(closest_detectors$nT2), x = 12, y = 0, labs = c("(a)", "(b)", "(c)"))
+m8b <- closest_detectors %>% filter(nT %in% c(20,40,60)) %>%
+  ggplot(aes(x = nearest_detdist/1000, y = Fx)) + 
+  geom_path(aes(colour = method2)) + facet_grid(. ~ nT2, labeller = label_parsed) +
+  geom_text(data = m_abc, aes(x = x, y = y, label = labs), hjust = 1, vjust = 0) + 
+  xlab("Nearest-detector distance (km)") + ylab("Cumulative probability") + 
+  theme_bw(base_size = 14) +
+  coord_cartesian(xlim = c(0, 12)) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_x_continuous(breaks=seq(0,12,2)) +
+  theme(legend.position="none",legend.title = element_blank(), 
+        panel.background=element_blank(),panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),plot.background=element_blank())
+m8b
+
+cdf_data <- data.frame(dists = as.numeric(), Fx = as.numeric(), nT = as.integer(), method = as.character())
+for(m in unique(all_traps$method)){
+  for(i in c(20,40,60)){
+    if(!((m == "survey")&(i == 60))){
+      allxt <- c()
+      for(j in 1:1){
+        xx <- all_traps %>% filter(nT == i, trap_id == j, method == m)
+        ds <- e2dist(cbind(xx$x, xx$y),cbind(xx$x, xx$y))
+        diag(ds) <- NA
+        allxt <- c(allxt, unlist(ds[!is.na(ds)]))
+      }
+      
+      cdf_data <- rbind(cdf_data, 
+                        data.frame(dists = sort(allxt), 
+                                   Fx = seq(0, 1, length.out = length(allxt)),
+                                   nT = i,
+                                   method = m)) 
+    }
+  }
+}
+
+cdf_data$nT2 <- factor(cdf_data$nT, levels = c("20", "40", "60"), 
+                       labels = c(expression(paste("20 detectors")), 
+                                  expression(paste("40 detectors")), 
+                                  expression(paste("60 detectors"))))
+cdf_data$method2 <- factor(cdf_data$method, levels = c("grid", "optgrid", "mnr"),
+                           labels = c("Regular grid", "Regular grid + optimal.Spacing", "Min(n,r)"))
+
+m_abc <- data.frame(nT2 = levels(cdf_data$nT2), x = 100, y = 0, labs = c("(d)", "(e)", "(f)"))
+m9b <- cdf_data %>% 
+  ggplot(aes(x = dists/1000, y = Fx)) + 
+  geom_path(aes(colour = method2)) + facet_grid(. ~ nT2, labeller = label_parsed) +
+  geom_text(data = m_abc, aes(x = x, y = y, label = labs), hjust = 1, vjust = 0) + 
+  xlab("Between-detector distance (km)") + ylab("Cumulative probability") + 
+  theme_bw(base_size = 14) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_x_continuous(breaks = c(0, 25, 50, 75, 100)) +
+  theme(legend.position="bottom",legend.title = element_blank(),
+        panel.background=element_blank(),panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),plot.background=element_blank(),
+        legend.margin=margin(0,0,5,0), legend.box.margin=margin(-10,-10,-10,-10))
+m9b
+
+ggsave("output/tost-trap-dists.png", 
+       arrangeGrob(m8b, m9b, ncol = 1, heights = c(5,6)), width=10, height=6, dpi = 300)
+
+######################
+## Supplementary material Figure 4, 5, 6 -- plot of sensitivity to misspecification 
 ######################
 
 load("output/posthoc-check-robustness-to-misspec.RData")
@@ -556,8 +671,149 @@ ggsave("output/tost-misspec-lambda.png", sm1, width=10, height=5, dpi = 300)
 ggsave("output/tost-misspec-sigma.png", sm2, width=10, height=5, dpi = 300)
 ggsave("output/tost-misspec-alpha.png", sm3, width=10, height=5, dpi = 300)
 
+
 ######################
-## supplementary material -- table of bias 
+## Supplementary material Table 1 -- shortest paths for uniform D
+######################
+
+load("output/all-res-D0-simsum-only.RData")
+
+# combine
+sim_sum <- rbind(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum)
+
+# compare
+all_sum <- sim_sum %>% group_by(trap_id, design) %>% summarize(approx_cv = 1 / sqrt(min(mean(En), mean(Er))),
+                                                               sim_cv = sd(E.N) / mean(E.N),
+                                                               n = mean(n), En = mean(En),
+                                                               r = mean(r), Er = mean(Er),
+                                                               m = mean(moves), Em = mean(Em),
+                                                               ecva = sd(esa) / mean(esa),
+                                                               esa = mean(esa),
+                                                               cvN = mean(cvN), cva = mean(cva), cvD = mean(cvD),
+                                                               nsim = n()) 
+
+opt_traps_all <- opt_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
+                                                           shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
+grid_traps_all <- grid_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
+                                                                                         shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
+opt_grid_traps_all <- opt_grid_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
+                                                                                                 shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
+
+all_shortest_paths <- rbind(opt_traps_all %>% mutate(design = "mnr_mod"), 
+                            grid_traps_all %>% mutate(design = "grid_mod"), 
+                            opt_grid_traps_all %>% mutate(design = "opt_grid_mod")) %>% 
+  group_by(design, id) %>% summarize(shortest_path = first(shortest_path)) %>% rename(trap_id = id) %>% ungroup()
+
+all_sum <-  all_sum %>%
+  left_join(all_shortest_paths, by = c("trap_id", "design"))
+
+all_sum %>% mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>%
+  mutate(En = round(En,1), Er = round(Er, 1), 
+         nn = paste0(round(n,1)," (",round(En,1),")"), rr = paste0(round(r,1)," (",round(Er,1),")"), 
+         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0), shortest_path = round(shortest_path/1000,0)) %>% 
+  dplyr::select(trap_id, design, shortest_path) %>%
+  pivot_wider(names_from = "design", values_from = c("shortest_path")) %>%
+  #dplyr::select(trap_id, mnr_mod, grid_mod, opt_grid_mod) %>%
+  kable("latex", caption = "Group Rows", booktabs = T) %>% 
+  kable_styling() %>%
+  pack_rows("", 1, 3) %>%
+  pack_rows("", 4, 6) %>%
+  pack_rows("", 7, 9) %>%
+  pack_rows("", 10, 12) %>%
+  pack_rows("", 13, 15) %>%
+  pack_rows("", 16, 18)
+
+
+######################
+## Supplementary material Table 2 -- shortest paths for non-uniform cases
+######################
+
+load("output/all-res-D1-simsum-only.RData")
+
+# load designs
+load("output/Tost_examples_nonuniD.Rdata")  
+load("output/Tost_examples_nonopt_D1.Rdata")  
+
+# put ids
+ids <- c(rep(1,40), rep(2,60), rep(3, 40), rep(4,60), rep(5,40), rep(6, 60), 
+         rep(7,40), rep(8,60), rep(9, 40), rep(10,60), rep(11,40), rep(12,60),
+         rep(13,40), rep(14,60), rep(15,40), rep(16,60), rep(17,40), rep(18,60))
+opt_traps_all <- opt_traps_D1_all %>% mutate(id = ids)
+grid_traps_all <- grid_traps_all %>% mutate(id = ids)
+opt_grid_traps_all <- opt_grid_traps_all %>% mutate(id = ids)
+
+all_masks <- all_masks_D1
+rm(all_masks_D1, opt_traps_D1_all)
+# set up parameter values in same order used to generate optimal designs, so can associate possibly spatially
+# varying D and lambda0 with each combination
+
+b_ac <- c(-1, -1, 1, 1, 3, 3, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1)
+b_d <- c(0, 0, 0, 0, 0, 0, -0.75, -0.75, 0.75, 0.75, 1.5, 1.5, -0.75, -0.75, 0.75, 0.75, 1.5, 1.5)
+nT <- rep(c(40,60), times = 9)
+dens_per_100km2 <- 2
+
+# combine
+sim_sum <- rbind(grid_sim_sum, opt_grid_sim_sum, mnr_sim_sum)
+
+# add shortest paths
+
+opt_traps_all <- opt_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
+                                                           shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
+
+grid_traps_all <- grid_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
+                                                             shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
+opt_grid_traps_all <- opt_grid_traps_all %>% group_by(id) %>% mutate(shortest_cycle = tour_length(solve_TSP(ETSP(data.frame(x,y)))),
+                                                                     shortest_path = tour_length(solve_TSP(insert_dummy(TSP(dist(data.frame(x,y))))))) %>% ungroup()
+
+all_shortest_paths <- rbind(opt_traps_all %>% mutate(design = "mnr_mod"), 
+                            grid_traps_all %>% mutate(design = "grid_mod"), 
+                            opt_grid_traps_all %>% mutate(design = "opt_grid_mod")) %>% 
+  group_by(design, id) %>% summarize(shortest_path = first(shortest_path)) %>% rename(trap_id = id) %>% ungroup()
+
+
+# compare
+
+all_sum <- sim_sum %>% group_by(trap_id, design) %>% summarize(approx_cv = 1 / sqrt(min(mean(En), mean(Er))),
+                                                               sim_cv = sd(E.N) / mean(E.N),
+                                                               n = mean(n), En = mean(En),
+                                                               r = mean(r), Er = mean(Er),
+                                                               m = mean(moves), Em = mean(Em),
+                                                               ecva = sd(esa) / mean(esa),
+                                                               esa = mean(esa),
+                                                               cvN = mean(cvN), cva = mean(cva), cvD = mean(cvD),
+                                                               nsim = n()) %>% ungroup() %>%
+  left_join(all_shortest_paths, by = c("trap_id", "design"))
+
+all_sum %>% 
+  mutate(b_ac = rep(b_ac, each = 3), b_d = rep(b_d, each = 3), nT = rep(nT, each = 3), cv_a = round(100*ecva,0),
+         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0), shortest_path = round(shortest_path/1000,0)) %>%
+  mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>% 
+  filter(nT == 40) %>%
+  dplyr::select(trap_id, b_ac, b_d, design, sim_cv, approx_cv, cv_a) %>%
+  pivot_wider(names_from = "design", values_from = c("sim_cv", "approx_cv", "cv_a")) %>%
+  #dplyr::select(trap_id, b_ac, b_d, mnr_mod, grid_mod, opt_grid_mod) %>%
+  kable("latex", caption = "Group Rows", booktabs = T) %>% 
+  kable_styling() %>%
+  pack_rows("", 1, 3) %>%
+  pack_rows("", 4, 6) %>%
+  pack_rows("", 7, 9) 
+
+all_sum %>% 
+  mutate(b_ac = rep(b_ac, each = 3), b_d = rep(b_d, each = 3), nT = rep(nT, each = 3), cv_a = round(100*ecva,0),
+         sim_cv = round(100*sim_cv,0), approx_cv = round(100*approx_cv,0), shortest_path = round(shortest_path/1000,0)) %>%
+  mutate(design = ifelse(design == "mnr_mod", "amnr_mod", design)) %>% arrange(design) %>% 
+  filter(nT == 40) %>%
+  dplyr::select(trap_id, b_ac, b_d, design, shortest_path) %>%
+  pivot_wider(names_from = "design", values_from = c("shortest_path")) %>%
+  #dplyr::select(trap_id, b_ac, b_d, mnr_mod, grid_mod, opt_grid_mod) %>%
+  kable("latex", caption = "Group Rows", booktabs = T) %>% 
+  kable_styling() %>%
+  pack_rows("", 1, 3) %>%
+  pack_rows("", 4, 6) %>%
+  pack_rows("", 7, 9) 
+
+######################
+## supplementary material Table 3 -- bias 
 ######################
 
 load("output/mnr-res-D1.RData")
