@@ -1,4 +1,4 @@
-# optimal-secr-design
+# Fast, flexible alternatives to regular grid designs for spatial capture-recapture
 
 Code for choosing detector locations for SCR surveys that maximize the approximate precision of density estimators. Detectors are placed to maximize whichever is the smaller of E(n), the number of animals detected (first captures), and E(r), the number of recaptures (total detections less first captures), based on the approximation in Efford and Boulanger (2019): CV(Dhat) ~ 1/sqrt[min{E(n),E(r)}]. The resulting designs are called min(n,r) designs. The code and output in this repo accompany the paper 
 
