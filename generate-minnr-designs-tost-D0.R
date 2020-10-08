@@ -21,7 +21,7 @@ source("oSCR/utils_for_enrmL.R")
 dyn.load("oSCR/mysecrdesign.so")
 
 # user parameters
-lambda0 <- 1  # beta0 = log(lambda0) = log(K * 'p0')
+lambda0 <- 1  
 dens_per_100km2 <- 2 # mean animal density per 100km2, SLs are ~1
 D <- dens_per_100km2 / 10000
 sigma <- 3000
@@ -68,7 +68,7 @@ alltraps_df <- data.frame(coordinates(alltraps), stdGC = matrix(alltraps)) %>% f
 alltraps <- as.matrix(alltraps_df)[,c(1,2)]
 plot(read.mask(data = alltraps_df), col = 'blue', add = TRUE, axes =T)              
 
-### going to generate En, Er, CV under different designs in this survey area, varying nT, beta0, sigma, buffer
+### going to generate En, Er, CV under different designs in this survey area, varying nT, lambda0, sigma, buffer
 
 ################################################
 ### Results for Figure 2: uniform D, uniform habitat use
@@ -91,7 +91,7 @@ for(n in c(20,40,60)){
   mnr <- scrdesignGAenrm(statespace = newmask,
                          alltraps = alltraps,
                          ntraps = n,
-                         beta0 = log(lambda0),
+                         lambda0 = lambda0,
                          sigma = sigma,
                          D = D,
                          occasions = 1,
@@ -99,6 +99,7 @@ for(n in c(20,40,60)){
                          ngen = 50,
                          popsize = 1000,
                          crit = 3,
+                         pen_wt = 100,
                          seed = 700)
   
   # extract camera locations
@@ -116,7 +117,7 @@ for(n in c(20,40,60)){
   mnr <- scrdesignGAenrm(statespace = newmask,
                          alltraps = alltraps,
                          ntraps = n,
-                         beta0 = log(lambda0),
+                         lambda0 = lambda0,
                          sigma = sigma,
                          D = D,
                          occasions = 1,
@@ -124,6 +125,7 @@ for(n in c(20,40,60)){
                          ngen = 50,
                          popsize = 1000,
                          crit = 3,
+                         pen_wt = 100,
                          seed = 222)
   
   # extract camera locations
@@ -145,7 +147,7 @@ for(n in c(20, 40, 60)){
   mnr <- scrdesignGAenrm(statespace = mask,
                          alltraps = alltraps,
                          ntraps = n,
-                         beta0 = log(lambda0),
+                         lambda0 = lambda0,
                          sigma = sigma,
                          D = D,
                          occasions = 1,
@@ -153,6 +155,7 @@ for(n in c(20, 40, 60)){
                          ngen = 50,
                          popsize = 1000,
                          crit = 3,
+                         pen_wt = 100,
                          seed = 222)
   
   # extract camera locations
@@ -175,7 +178,7 @@ for(lam in c(0.5*lambda0, 1.5*lambda0, 2*lambda0)){
   mnr <- scrdesignGAenrm(statespace = newmask,
                          alltraps = alltraps,
                          ntraps = nT,
-                         beta0 = log(lam),
+                         lambda0 = lam,
                          sigma = sigma,
                          D = D,
                          occasions = 1,
@@ -183,6 +186,7 @@ for(lam in c(0.5*lambda0, 1.5*lambda0, 2*lambda0)){
                          ngen = 50,
                          popsize = 1000,
                          crit = 3,
+                         pen_wt = 100,
                          seed = 222)
   
   # extract camera locations
@@ -218,7 +222,7 @@ for(s in c(0.5*sigma, 1.5*sigma, 2*sigma)){
   mnr <- scrdesignGAenrm(statespace = mask_s,
                          alltraps = alltraps,
                          ntraps = nT,
-                         beta0 = log(lambda0),
+                         lambda0 = lambda0,
                          sigma = s,
                          D = D,
                          occasions = 1,
@@ -226,6 +230,7 @@ for(s in c(0.5*sigma, 1.5*sigma, 2*sigma)){
                          ngen = 50,
                          popsize = 1000,
                          crit = 3,
+                         pen_wt = 100,
                          seed = 222)
   
   # extract camera locations
@@ -235,7 +240,7 @@ for(s in c(0.5*sigma, 1.5*sigma, 2*sigma)){
 }
 
 # Fig 1 p-r: other kinds of detectors 
-# note: these use different values for sigma, beta0 to show differences between designs more clearly
+# note: these use different values for sigma, lambda0 to show differences between designs more clearly
 
 for(d in c("multi", "proximity", "count")){
   
@@ -246,7 +251,7 @@ for(d in c("multi", "proximity", "count")){
   mnr <- scrdesignGAenrm(statespace = newmask,
                          alltraps = alltraps,
                          ntraps = nT,
-                         beta0 = log(lambda0/5),
+                         lambda0 = lambda0/5,
                          sigma = sigma,
                          D = D,
                          occasions = 5,
@@ -254,6 +259,7 @@ for(d in c("multi", "proximity", "count")){
                          ngen = 50,
                          popsize = 1000,
                          crit = 3,
+                         pen_wt = 100,
                          seed = 222)
   
   # extract camera locations

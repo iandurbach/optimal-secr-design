@@ -1,27 +1,32 @@
-# ststespace: state space points
-# all.traps:  set of trap locations
-# fix:        a set of points that are fixed (i.e., always in the design)
-# clust.mids: centroid of a cluster (for selction purposes?)
-# ntraps:     number of location we WANT
-# ndesigns:   number of different 'optimal' designs to return
-# nn:         number of neighbours for the swapping algorithm
+# statespace: state space points
+# alltraps:  set of all possible trap locations
+# ntraps:     number of trap locations we WANT
 # beta0:      estimated bld
 # sigma:      estimated sigma
-# crit: which criterion to use
+# D:          density per ha
+# occasions:  the number of survey occasions
+# detector:   one of "count", "proximity", or "multi" (see secr for details).
+# crit: which criterion to use (1 = En, 2 = Em, 3 = min(En,Er))
+# ngen:       number of generations to run the GA for
+# popsize:    number of designs in each population
+# seed:       set a random seed for reproducibility
+# USE THE FOLLOWING WITH CAUTION!
+# pen_gridsigma:   penalties for bad trap spacing are based on comparing min(n,r) grid
+#                  to what you would get from a X-sigma regular grid. X = pen_gridsigma
+# pen_wt:          penalty for spacings that are too different from regular grid
 
 scrdesignGAenrm <- function(statespace = NULL,
                             alltraps = NULL, 
                             ntraps = 9, 
-                            beta0 = -0.6, 
+                            lambda0 = exp(-0.6), 
                             sigma = 2, 
                             D = 1,
                             occasions = 1,
                             detector = "proximity",
                             crit = 3, 
                             pen_gridsigma = 2,
-                            pen_wt = 100,
-                            sum_wt = 0.005,
-                            N = 100, #why?
+                            pen_wt = 0, 
+                            #N = 100, 
                             verbose=1,
                             ngen = 50,
                             popsize = 50,
@@ -64,18 +69,6 @@ scrdesignGAenrm <- function(statespace = NULL,
   g_n3ish <- n3ish * 1
   g_n4ish <- n4ish * 1
   
-  # statespace <- data.frame(statespace)
-  # 
-  # if(ncol(statespace)==2){
-  #   statespace$density <- 1 / nrow(statespace)
-  # } 
-  
-
-  # faster way, once sure enrmL is working  
-  # if (length(beta0) == 1) { 
-  #   beta0 <- rep(beta0, length(alltraps)) 
-  #   } else if (length(beta0 != length(alltraps))) { stop("length(lambda0) must be 1 or length(alltraps)")}
-  
   des <- kofnGA(n = nrow(alltraps), 
                 k = ntraps, 
                 OF = scrdesignOFenrm,
@@ -83,7 +76,7 @@ scrdesignGAenrm <- function(statespace = NULL,
                 ...,
                 alltraps = alltraps,
                 statespace = statespace,
-                beta0 = beta0,
+                lambda0 = lambda0,
                 sigma = sigma,
                 D = D,
                 occasions = occasions,
@@ -91,11 +84,11 @@ scrdesignGAenrm <- function(statespace = NULL,
                 ngen = ngen,
                 popsize = popsize,
                 g_n234 = c(g_n2ish, g_n3ish, g_n4ish),
-                pen_wt = pen_wt, sum_wt = sum_wt, 
+                pen_wt = pen_wt, 
                 crit=crit)
   optimaltraps <- alltraps[des$bestsol,]
   scrdesign <- list(des=des, statespace=statespace, alltraps=alltraps, optimaltraps=optimaltraps, 
-                    sigma=sigma, beta0=beta0)
+                    sigma=sigma, beta0=exp(lambda0*occasions), lambda0=lambda0)
   class(scrdesign) <- "scrdesign"
   return(scrdesign)
 }

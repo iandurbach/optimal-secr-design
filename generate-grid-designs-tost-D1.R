@@ -12,7 +12,7 @@ library(gdistance)
 library(oSCR)
 
 # user parameters
-lambda0 <- 1  # beta0 = log(lambda0) = log(K * 'p0')
+lambda0 <- 1  
 dens_per_100km2 <- 2 # mean animal density per 100km2, SLs are ~1
 D <- dens_per_100km2 / 10000
 sigma <- 3000

@@ -12,8 +12,8 @@ library(oSCR)
 library(raster)
 library(kofnGA)
 
-source("oSCR/SCRdesignGAenrm.R")
-source("oSCR/SCRdesignOFenrm.R")
+source("oSCR/scrdesignGAenrm.R")
+source("oSCR/scrdesignOFenrm.R")
 
 # input file contains data frames with mask locations, and all potential camera locations
 load("data/TostExample.RData")
@@ -23,7 +23,7 @@ ndesigns <- 1
 nT <- 30
 
 # assumptions about animal density and movement
-lambda0 <- 1  # beta0 = log(lambda0) = log(K * 'p0')
+lambda0 <- 1  
 dens_per_100km2 <- 2 # mean animal density per 100km2, SLs are ~1
 D <- dens_per_100km2 / 10000
 sigma <- 3000
@@ -41,14 +41,13 @@ alltraps <- alltraps_df[,1:2] %>% as.matrix()
 mnr <- scrdesignGAenrm(statespace = mask,
                        alltraps = alltraps,
                        ntraps = nT,
-                       beta0 = log(lambda0),
+                       lambda0 = lambda0,
                        sigma = sigma,
                        D = D,
                        occasions = 1,
                        detector = "count",
                        ngen = 20,
                        popsize = 500,
-                       crit = 3,
                        seed = 700)
 
 # extract camera locations

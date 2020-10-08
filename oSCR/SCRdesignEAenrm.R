@@ -1,6 +1,6 @@
 SCRdesignEAenrm = function (statespace = NULL, all.traps = NULL, clusters = NULL, 
                       fix = NULL, clust.mids = clust.mids, ntraps = 9, ndesigns = 10, 
-                      nn = 19, beta0 = -0.6, sigma = 2, N = 100, 
+                      nn = 19, lambda0 = exp(-0.6), sigma = 2, N = 100, 
                       occasions = 1, detector = NULL, D_per_mask_cell = 1, 
                       noneuc_cov = NULL, alpha2 = 1, crit = 8, use.secr = FALSE,
                       pen_wt = 0, pen_gridsigma = 2)  
@@ -45,7 +45,7 @@ SCRdesignEAenrm = function (statespace = NULL, all.traps = NULL, clusters = NULL
     
     g_n234 <- c(g_n2ish, g_n3ish, g_n4ish)
     
-    Qfn <- function (X, S, N = 100, sigma, beta0, 
+    Qfn <- function (X, S, N = 100, sigma, lambda0, 
                      occasions, detector, D_per_mask_cell, ##
                      transitions = NULL, divby = 1, addback = 0, g_n234, pen_wt)  ##
     {
@@ -56,7 +56,7 @@ SCRdesignEAenrm = function (statespace = NULL, all.traps = NULL, clusters = NULL
        n4ish <- sum((td <= 4.449 * sigma) & (td > 3.499 * sigma))
        pen <- pen_wt * (max(0, g_n234[1] - n2ish) + max(0, g_n234[2] - n3ish) + max(0, g_n234[3] - n4ish))
       traps <- read.traps(data = data.frame(X), detector = detector)
-      enrm <- Enrm(D = D_per_mask_cell, traps = traps, mask = S, noccasions = occasions, detectpar = list(lambda0 = exp(beta0[1]), sigma = sigma))
+      enrm <- Enrm(D = D_per_mask_cell, traps = traps, mask = S, noccasions = occasions, detectpar = list(lambda0 = lambda0[1], sigma = sigma))
       # ch <- sim.capthist(traps = traps, pop = pop, noccasions = 5, detectpar = list(lambda0 = lambda0, sigma = sigma), detectfn = 14)
       # mod <- secr.fit(capthist = ch, mask = masks, model = list(D ~ 1), method = "none",
       #                 detectfn = "HHN", start = c(log(D), log(lambda0), log(sigma)), trace = FALSE)
@@ -75,9 +75,9 @@ SCRdesignEAenrm = function (statespace = NULL, all.traps = NULL, clusters = NULL
     stop("Must supply a 'detector' object")
   if (!(detector %in% c("count", "multi", "proximity")))
     stop("Detector must be one of 'count', 'multi', 'proximity'")
-  if((occasions>1) & (length(beta0)==1)){
-    beta0 <- rep(beta0, occasions)
-    warning("Single beta0 value given for >1 occasion, assuming beta0 is per occasion")
+  if((occasions>1) & (length(lambda0)==1)){
+    lambda0 <- rep(lambda0, occasions)
+    warning("Single lambda0 value given for >1 occasion, assuming lambda0 is per occasion")
   }
   # if noneuc then work out transition matrix with conductances
   if(!is.null(noneuc_cov)){
@@ -154,7 +154,7 @@ SCRdesignEAenrm = function (statespace = NULL, all.traps = NULL, clusters = NULL
     }
     # new Qfn (does En, Er, and outputs everything)
     Qinit <- Qfn(X = X, S = statespace, N = N, sigma = sigma, 
-                 beta0 = beta0, 
+                 lambda0 = lambda0, 
                  occasions = occasions, detector = detector, D_per_mask_cell = D_per_mask_cell, 
                  transitions = trans, divby = divby, addback = addback, g_n234 = g_n234, pen_wt = pen_wt)
     Qinit <- c(Qinit, max(Qinit[c(4,5)]))
@@ -198,7 +198,7 @@ SCRdesignEAenrm = function (statespace = NULL, all.traps = NULL, clusters = NULL
             }
             # new Qfn (does En, Er, and outputs everything)
             Qinit <- Qfn(X = Xtest, S = statespace, N = N, 
-                         sigma = sigma, beta0 = beta0, 
+                         sigma = sigma, lambda0 = lambda0, 
                          occasions = occasions, detector = detector, D_per_mask_cell = D_per_mask_cell, 
                          transitions = trans, divby = divby, addback = addback, g_n234 = g_n234, pen_wt = pen_wt)
             Qinit <- c(Qinit, max(Qinit[c(4,5)]))

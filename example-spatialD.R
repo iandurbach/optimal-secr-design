@@ -12,8 +12,8 @@ library(oSCR)
 library(raster)
 library(kofnGA)
 
-source("oSCR/SCRdesignGAenrm.R")
-source("oSCR/SCRdesignOFenrm.R")
+source("oSCR/scrdesignGAenrm.R")
+source("oSCR/scrdesignOFenrm.R")
 
 # # https://www.r-bloggers.com/three-ways-to-call-cc-from-r/
 # source("oSCR/LambdaL.R")
@@ -28,7 +28,7 @@ ndesigns <- 1
 nT <- 30
 
 # assumptions about animal density and movement
-lambda0 <- 1  # beta0 = log(lambda0) = log(K * 'p0')
+lambda0 <- 1  
 dens_per_100km2 <- 2 # mean animal density per 100km2, SLs are ~1
 D <- dens_per_100km2 / 10000
 sigma <- 3000
@@ -63,7 +63,7 @@ alltraps <- alltraps_df[,1:2] %>% as.matrix()
 mnr <- scrdesignGAenrm(statespace = mask,
                        alltraps = alltraps,
                        ntraps = nT,
-                       beta0 = log(lambda0),
+                       lambda0 = lambda0,
                        sigma = sigma,
                        D = Dac,
                        occasions = 1,

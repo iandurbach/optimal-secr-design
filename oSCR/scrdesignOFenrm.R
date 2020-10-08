@@ -1,4 +1,4 @@
-scrdesignOFenrm = function (v, alltraps, statespace, pop, N = 100, sigma, beta0, 
+scrdesignOFenrm = function (v, alltraps, statespace, pop, N = 100, sigma, lambda0, 
                             occasions, detector, D, crit = 3, g_n234, pen_wt, sum_wt, ##
                             transitions = NULL, divby = 1, addback = 0) {
   
@@ -11,15 +11,15 @@ scrdesignOFenrm = function (v, alltraps, statespace, pop, N = 100, sigma, beta0,
   
   traps <- read.traps(data = data.frame(alltraps[v,]), detector = detector)
   
-  if(length(beta0) > 1){
-    beta0_mat <- matrix(beta0[v], nrow = 1, ncol = length(v))
-    enrm <- EnrmL(D = D, traps = traps, mask = statespace, noccasions = occasions, detectpar = list(lambda0 = exp(beta0_mat), sigma = sigma))
+  if(length(lambda0) > 1){
+    lambda0_mat <- matrix(lambda0[v], nrow = 1, ncol = length(v))
+    enrm <- EnrmL(D = D, traps = traps, mask = statespace, noccasions = occasions, detectpar = list(lambda0 = lambda0_mat, sigma = sigma))
   } else {
-    enrm <- Enrm(D = D, traps = traps, mask = statespace, noccasions = occasions, detectpar = list(lambda0 = exp(beta0)[1], sigma = sigma))
+    enrm <- Enrm(D = D, traps = traps, mask = statespace, noccasions = occasions, detectpar = list(lambda0 = lambda0[1], sigma = sigma))
   }
   
-  c(-enrm[1], -enrm[3], pen-(min(enrm[1],enrm[2])+sum_wt*(enrm[1]+enrm[2])))[crit]  
-  #c(-enrm[1], -enrm[3], -min(enrm[1],enrm[2]))[crit]  
+  c(-enrm[1], -enrm[3], pen-(min(enrm[1],enrm[2])))[crit]    
+  
 }
 
 

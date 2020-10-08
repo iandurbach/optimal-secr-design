@@ -15,7 +15,7 @@ library(gdistance)
 library(kofnGA)
 
 # user parameters
-lambda0 <- 1  # beta0 = log(lambda0) = log(K * 'p0')
+lambda0 <- 1  
 dens_per_100km2 <- 2 # mean animal density per 100km2, SLs are ~1
 D <- dens_per_100km2 / 10000
 sigma <- 3000
@@ -62,7 +62,7 @@ alltraps_df <- data.frame(coordinates(alltraps), stdGC = matrix(alltraps)) %>% f
 alltraps <- as.matrix(alltraps_df)[,c(1,2)]
 plot(read.mask(data = alltraps_df), col = 'blue', add = TRUE, axes =T)              
 
-### going to generate En, Er, CV under different designs in this survey area, varying nT, beta0, sigma, buffer
+### going to generate En, Er, CV under different designs in this survey area, varying nT, lambda0, sigma, buffer
 
 ################################################
 ### To compare with min(n,r) designs in Figure 2: uniform D, uniform habitat use
@@ -406,7 +406,7 @@ for(s in c(0.5*sigma, 1.5*sigma, 2*sigma)){
 }
 
 # Fig 1 p-r: other kinds of detectors 
-# note: these use different values for sigma, beta0 to show differences between designs more clearly
+# note: these use different values for sigma, lambda0 to show differences between designs more clearly
 
 for(d in c("multi", "proximity", "count")){
   

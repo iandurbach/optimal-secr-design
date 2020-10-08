@@ -13,9 +13,9 @@ library(kofnGA)
 library(sf)
 
 # design functions
-source("oSCR/SCRdesignGAenrm.R")
-source("oSCR/SCRdesignOFenrm.R")
-source("oSCR/SCRdesignEAenrm.R")
+source("oSCR/scrdesignGAenrm.R")
+source("oSCR/scrdesignOFenrm.R")
+source("oSCR/scrdesignEAenrm.R")
 source("fn-simulating-cvD.R")
 
 # detection function parameters
@@ -51,11 +51,11 @@ plot(eqs_grids, add = T)
 # generate min(n,r) design with exchange algorithm, no penalty
 
 set.seed(700)
-optSCR_ex0 <- SCRdesignEAenrm(statespace = statespace,
+optSCR_ex0 <- scrdesignEAenrm(statespace = statespace,
                         all.traps = grids,
                         ntraps = 25, # number of cameras available
                         ndesigns = 1, # number of random starting points
-                        beta0 = log(lambda0),
+                        lambda0 = lambda0,
                         sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
                         D = D,
                         occasions = 5,
@@ -74,11 +74,11 @@ plot(opt_grid_ex0, add = T)
 
 # generate min(n,r) design with exchange algorithm, with penalty
 set.seed(700)
-optSCR_ex <- SCRdesignEAenrm(statespace = statespace,
+optSCR_ex <- scrdesignEAenrm(statespace = statespace,
                        all.traps = grids,
                        ntraps = 25, # number of cameras available
                        ndesigns = 1, # number of random starting points
-                       beta0 = log(lambda0),
+                       lambda0 = lambda0,
                        sigma = sigma, # SCR pars (log(lambda0) and usual sigma)
                        D = D,
                        occasions = 5,
@@ -99,7 +99,7 @@ plot(opt_grid_ex, add = T)
 optSCR0 <- scrdesignGAenrm(statespace = masks,
                            alltraps = grids,
                            ntraps = 25, # number of cameras available
-                           beta0 = log(lambda0),
+                           lambda0 = lambda0,
                            sigma = sigma, 
                            D = D, # per mask cell not per ha!
                            occasions = 5,
@@ -107,7 +107,7 @@ optSCR0 <- scrdesignGAenrm(statespace = masks,
                            ngen = 20,
                            popsize = 1000,
                            crit = 3, # criterion 3 for min(n,r)
-                           pen_wt = 0, sum_wt = 0, seed = 700)
+                           pen_wt = 0, seed = 700)
 
 # extract camera locations
 opt_traps0 <- as.data.frame(optSCR0$optimaltraps)
@@ -121,7 +121,7 @@ plot(opt_grid0, add = T)
 optSCR <- scrdesignGAenrm(statespace = masks,
                           alltraps = grids,
                           ntraps = 25, # number of cameras available
-                          beta0 = log(lambda0),
+                          lambda0 = lambda0,
                           sigma = sigma, 
                           D = D, # per mask cell not per ha!
                           occasions = 5,
@@ -129,7 +129,7 @@ optSCR <- scrdesignGAenrm(statespace = masks,
                           ngen = 20,
                           popsize = 1000,
                           crit = 3,
-                          pen_wt = 50, sum_wt = 0, seed = 700)
+                          pen_wt = 50, seed = 700)
 
 # extract camera locations
 opt_traps <- as.data.frame(optSCR$optimaltraps)

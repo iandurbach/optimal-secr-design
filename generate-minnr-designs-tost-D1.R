@@ -21,7 +21,7 @@ source("oSCR/utils_for_enrmL.R")
 dyn.load("oSCR/mysecrdesign.so")
 
 # user parameters
-lambda0 <- 1  # beta0 = log(lambda0) = log(K * 'p0')
+lambda0 <- 1  
 dens_per_100km2 <- 2 # mean animal density per 100km2, SLs are ~1
 D <- dens_per_100km2 / 10000
 sigma <- 3000
@@ -68,7 +68,7 @@ alltraps_df <- data.frame(coordinates(alltraps), stdGC = matrix(alltraps)) %>% f
 alltraps <- as.matrix(alltraps_df)[,c(1,2)]
 plot(read.mask(data = alltraps_df), col = 'blue', add = TRUE, axes =T)              
 
-### going to generate En, Er, CV under different designs in this survey area, varying nT, beta0, sigma, buffer
+### going to generate En, Er, CV under different designs in this survey area, varying nT, lambda0, sigma, buffer
 
 ################################################
 ### Figure 2: non-uniform D, uniform habitat use
@@ -103,7 +103,7 @@ for(ba in c(-1,1,3)){
     mnr <- scrdesignGAenrm(statespace = mask,
                            alltraps = alltraps,
                            ntraps = nT,
-                           beta0 = log(lambda0),
+                           lambda0 = lambda0,
                            sigma = sigma,
                            D = Dcov_for_sim_ha,
                            occasions = 1,
@@ -111,6 +111,7 @@ for(ba in c(-1,1,3)){
                            ngen = 50,
                            popsize = 1000,
                            crit = 3,
+                           pen_wt = 100,
                            seed = 700)
     
     # extract camera locations
@@ -151,7 +152,7 @@ for(ba in c(0,1)){
       mnr <- scrdesignGAenrm(statespace = mask,
                              alltraps = alltraps,
                              ntraps = nT,
-                             beta0 = log(dLam),
+                             lambda0 = dLam,
                              sigma = sigma,
                              D = Dcov_for_sim_ha,
                              occasions = 1,
@@ -159,6 +160,7 @@ for(ba in c(0,1)){
                              ngen = 50,
                              popsize = 1000,
                              crit = 3,
+                             pen_wt = 100,
                              seed = 700)
       
       # extract camera locations
