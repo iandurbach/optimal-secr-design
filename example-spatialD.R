@@ -8,10 +8,11 @@ library(sf)
 library(stringr)
 library(secr)
 library(secrdesign)
-library(oSCR)
+#library(oSCR)
 library(raster)
 library(kofnGA)
 
+source("oSCR/e2dist.R")
 source("oSCR/scrdesignGAenrm.R")
 source("oSCR/scrdesignOFenrm.R")
 
@@ -70,7 +71,6 @@ mnr <- scrdesignGAenrm(statespace = mask,
                        detector = "count",
                        ngen = 20,
                        popsize = 500,
-                       crit = 3,
                        seed = 700)
 
 # extract camera locations

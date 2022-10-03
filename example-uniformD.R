@@ -8,10 +8,11 @@ library(sf)
 library(stringr)
 library(secr)
 library(secrdesign)
-library(oSCR)
+#library(oSCR)
 library(raster)
 library(kofnGA)
 
+source("oSCR/e2dist.R")
 source("oSCR/scrdesignGAenrm.R")
 source("oSCR/scrdesignOFenrm.R")
 
